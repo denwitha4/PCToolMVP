@@ -1,8 +1,17 @@
 from sqlalchemy import create_engine, Column, Integer, String, Float, ForeignKey, DateTime, Enum
-from sqlalchemy.orm import declarative_base
-from sqlalchemy.orm import relationship, sessionmaker
-from datetime import datetime
+from sqlalchemy.orm import relationship, sessionmaker, declarative_base
+import datetime
 import enum
+
+Base = declarative_base()
+DATABASE_URL = "sqlite:///db/pc_inventory.db"
+
+engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+def init_db():
+    """Create all tables"""
+    Base.metadata.create_all(bind=engine)
 
 Base = declarative_base()
 
@@ -15,22 +24,16 @@ class ComponentCategory(str, enum.Enum):
     PSU = "PSU"
     CASE = "Case"
     COOLING = "Cooling"
-    PERIPHERAL = "Peripheral"
+    EXTRAS = "Extras"
 
-class Component(Base):
+class Component(Base): ## Defines a specific component
     __tablename__ = "components"
     
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)  # e.g., "i7-12700k", "RTX 3070 Ti"
     category = Column(Enum(ComponentCategory), nullable=False)
-    quantity = Column(Integer, default=0)
     cost_per_unit = Column(Float, nullable=False)  # What you paid
-    retail_price = Column(Float, nullable=True)  # What you sell for (optional)
-    supplier = Column(String, nullable=True)
-    location = Column(String, nullable=True)  # Where it's stored
-    notes = Column(String, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    msrp = Column(Float, nullable=True)  # What you sell for (optional)
     
     # Relationship to builds
     build_components = relationship("BuildComponent", back_populates="component")
@@ -41,18 +44,13 @@ class BuildStatus(str, enum.Enum):
     COMPLETED = "Completed"
     SOLD = "Sold"
 
-class Build(Base):
+class Build(Base): ## Defines a build, to be ready for parts to be imported.
     __tablename__ = "builds"
     
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)  # e.g., "Gaming PC #1", "Office Build"
     status = Column(Enum(BuildStatus), default=BuildStatus.PLANNING)
-    customer_name = Column(String, nullable=True)
-    selling_price = Column(Float, nullable=True)  # What you sold it for
-    notes = Column(String, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    completed_at = Column(DateTime, nullable=True)
-    sold_at = Column(DateTime, nullable=True)
+    selling_price = Column(Float, nullable=True)
     
     # Relationship to components
     build_components = relationship("BuildComponent", back_populates="build", cascade="all, delete-orphan")
@@ -60,14 +58,12 @@ class Build(Base):
     @property
     def total_cost(self):
         """Calculate total cost based on components used"""
-        return sum(bc.cost_at_time * bc.quantity for bc in self.build_components)
+        return sum(bc.cost_at_time for bc in self.build_components)
     
     @property
-    def profit(self):
-        """Calculate profit if sold"""
-        if self.selling_price:
-            return self.selling_price - self.total_cost
-        return None
+    def partsMSRP(self):
+        """Gathers the part MSRP"""
+        return sum(bc.msrp for bc in self.build_components)
 
 class BuildComponent(Base):
     """Junction table linking builds to components"""
@@ -84,7 +80,7 @@ class BuildComponent(Base):
     component = relationship("Component", back_populates="build_components")
 
 # Database setup
-DATABASE_URL = "sqlite:///./pc_inventory.db"
+DATABASE_URL = "sqlite:///db/pc_inventory.db"
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
@@ -100,6 +96,19 @@ def get_db():
     finally:
         db.close()
 
+
+"""
+The below are example usages of the above classes.
+
+
+In the future, it would be good to add supplier, time bought, and 
+notes to the component class.
+
+It would also be great to add when a build was created date/time, 
+last update date/time, completed date/time, sold date/time, and 
+notes, to the Build class.
+"""
+
 # Example usage:
 if __name__ == "__main__":
     # Create tables
@@ -111,21 +120,15 @@ if __name__ == "__main__":
     cpu = Component(
         name="i7-12700k",
         category=ComponentCategory.CPU,
-        quantity=3,
         cost_per_unit=350.00,
-        retail_price=450.00,
-        supplier="NewEgg",
-        location="Shelf A1"
+        msrp=450.00,
     )
     
     gpu = Component(
         name="RTX 3070 Ti",
         category=ComponentCategory.GPU,
-        quantity=2,
         cost_per_unit=550.00,
-        retail_price=700.00,
-        supplier="Amazon",
-        location="Shelf A2"
+        msrp=700.00,
     )
     
     db.add(cpu)
@@ -136,7 +139,6 @@ if __name__ == "__main__":
     build = Build(
         name="Gaming PC #1",
         status=BuildStatus.IN_PROGRESS,
-        customer_name="John Doe"
     )
     db.add(build)
     db.commit()
@@ -161,5 +163,11 @@ if __name__ == "__main__":
     
     # Check total cost
     print(f"Build total cost: ${build.total_cost}")
+    
+    components = db.query(Component).all()  # get all rows
+
+    for c in components:
+        print(f"ID: {c.id}, Name: {c.name}, Category: {c.category.value}, Cost: {c.cost_per_unit}, MSRP: {c.msrp}")
+
     
     db.close()

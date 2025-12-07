@@ -9,7 +9,9 @@ fi
 source venv/bin/activate
 
 # Install dependencies if missing
+pip install sqlalchemy
 pip install fastapi uvicorn --quiet
 
 # Run FastAPI app
+cd ..
 uvicorn main:app --reload
