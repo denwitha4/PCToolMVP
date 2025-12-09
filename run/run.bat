@@ -9,8 +9,7 @@ REM Activate venv
 call venv\Scripts\activate.bat
 
 REM Install dependencies if missing
-pip install sqlalchemy
-pip install fastapi uvicorn --quiet
+pip install sqlalchemy fastapi uvicorn jinja2 --quiet
 
 REM Run FastAPI app
 cd ..
