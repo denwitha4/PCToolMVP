@@ -13,6 +13,9 @@ templates = Jinja2Templates(directory="templates") ## Tells FastAPI to look for 
 async def read_root(request: Request, db: Session = Depends(get_db)):
     return templates.TemplateResponse("index.html", {"request": request}) 
 
+@router.get("/inventory", response_class=HTMLResponse)
+async def read_root(request: Request, db: Session = Depends(get_db)):
+    return templates.TemplateResponse("inventory.html", {"request": request}) 
 
 
 
