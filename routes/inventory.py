@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import PlainTextResponse
 from sqlalchemy.orm import Session
 from database import get_db, Component, ComponentCategory
 from pydantic import BaseModel
@@ -99,7 +100,34 @@ def delete_component(component_id: int, db: Session = Depends(get_db)):
     if not component:
         raise HTTPException(status_code=404, detail="Component not found")
     
+    # Check if component is used in any builds
+    from database import BuildComponent
+    used_in_builds = db.query(BuildComponent).filter(BuildComponent.component_id == component_id).first()
+    if used_in_builds:
+        raise HTTPException(status_code=400, detail="Cannot delete component that is used in builds")
+    
     db.delete(component)
     db.commit()
     
     return {"message": "Component deleted successfully", "id": component_id}
+
+
+
+# GET components in plaintext REMOVE THIS WHENEVER
+@router.get("/components/text", response_class=PlainTextResponse)
+def get_components_text(db: Session = Depends(get_db)):
+    """Get all components in plaintext format"""
+    components = db.query(Component).all()
+    if not components:
+        return "No components found."
+    
+    text = "Components:\n\n"
+    for c in components:
+        text += f"ID: {c.id}\n"
+        text += f"Name: {c.name}\n"
+        text += f"Category: {c.category.value}\n"
+        text += f"Cost per Unit: ${c.cost_per_unit}\n"
+        text += f"MSRP: ${c.msrp if c.msrp else 'N/A'}\n"
+        text += "\n"
+    
+    return text
