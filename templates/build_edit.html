@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Build</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        .builder-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            height: calc(100vh - 120px);
+        }
+        .builder-section {
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            overflow-y: auto;
+        }
+        .left-section {
+            grid-column: 1;
+        }
+        .right-section {
+            display: grid;
+            grid-template-rows: 1fr 1fr;
+            gap: 20px;
+        }
+        .right-top, .right-bottom {
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            overflow-y: auto;
+        }
+        .builder-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .builder-table thead {
+            background-color: #34495e;
+            color: white;
+        }
+        .builder-table th {
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 0.5px;
+        }
+        .builder-table tbody tr {
+            border-bottom: 1px solid #ecf0f1;
+            transition: background-color 0.2s;
+        }
+        .builder-table tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+        .builder-table td {
+            padding: 12px;
+            color: #2c3e50;
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar Navigation -->
+    <div class="sidebar">
+        <h2>PC Inventory</h2>
+        <div class="nav-item" onclick="navigateTo('dashboard')">
+            <span>📊</span>
+            <span>Dashboard</span>
+        </div>
+        <div class="nav-item" onclick="navigateTo('inventory')">
+            <span>📦</span>
+            <span>Inventory</span>
+        </div>
+        <div class="nav-item active" onclick="navigateTo('builder')">
+            <span>🖥️</span>
+            <span>PC Builder</span>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="header">
+            <h1>Edit Build: <span id="buildName"></span></h1>
+            <button class="add-button" onclick="navigateTo('builder')">Back to Builds</button>
+        </div>
+
+        <div class="builder-grid">
+            <!-- Left Section: Current Build Components -->
+            <div class="builder-section left-section">
+                <h2>Build Components</h2>
+                <table class="builder-table">
+                    <thead>
+                        <tr>
+                            <th>Component</th>
+                            <th>Category</th>
+                            <th>Cost</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="buildTableBody">
+                        <!-- Build components will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Right Section -->
+            <div class="right-section">
+                <!-- Top Right: Component Selector -->
+                <div class="right-top">
+                    <h3>Add Components</h3>
+                    <select id="componentSelector" onchange="addComponentToBuild()">
+                        <option value="">Select Component</option>
+                        <!-- Options will be loaded dynamically -->
+                    </select>
+                </div>
+
+                <!-- Bottom Right: Build Summary -->
+                <div class="right-bottom">
+                    <h3>Build Summary</h3>
+                    <table class="builder-table">
+                        <tbody>
+                            <tr>
+                                <td>Total Cost:</td>
+                                <td id="totalCost">$0.00</td>
+                            </tr>
+                            <tr>
+                                <td>Estimated MSRP:</td>
+                                <td id="totalMSRP">$0.00</td>
+                            </tr>
+                            <tr>
+                                <td>Profit Margin:</td>
+                                <td id="profitMargin">$0.00</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentBuild = null;
+        let components = [];
+        let buildComponents = [];
+
+        // Get build ID from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const buildId = parseInt(window.location.pathname.split('/').pop());
+
+        // Load components and build data on page load
+        async function loadData() {
+            try {
+                const [componentsResponse, buildResponse] = await Promise.all([
+                    fetch('/api/inventory/components'),
+                    fetch(`/api/builder/builds/${buildId}`)
+                ]);
+                components = await componentsResponse.json();
+                currentBuild = await buildResponse.json();
+                
+                if (currentBuild) {
+                    document.getElementById('buildName').textContent = currentBuild.name;
+                    loadBuildComponents();
+                }
+                
+                populateComponentSelector();
+            } catch (error) {
+                console.error('Error loading data:', error);
+            }
+        }
+
+        function populateComponentSelector() {
+            const selector = document.getElementById('componentSelector');
+            selector.innerHTML = '<option value="">Select Component</option>';
+            components.forEach(component => {
+                const option = document.createElement('option');
+                option.value = component.id;
+                option.textContent = `${component.name} (${component.category}) - $${component.cost}`;
+                selector.appendChild(option);
+            });
+        }
+
+        async function loadBuildComponents() {
+            if (!currentBuild) return;
+            try {
+                const response = await fetch(`/api/builder/builds/${currentBuild.id}/components`);
+                buildComponents = await response.json();
+                renderBuildTable();
+                updateSummary();
+            } catch (error) {
+                console.error('Error loading build components:', error);
+            }
+        }
+
+        function renderBuildTable() {
+            const tbody = document.getElementById('buildTableBody');
+            tbody.innerHTML = buildComponents.map(bc => `
+                <tr>
+                    <td>${bc.component_name}</td>
+                    <td>${bc.category}</td>
+                    <td>$${bc.cost_at_time.toFixed(2)}</td>
+                    <td>
+                        <button class="action-btn delete-btn" onclick="removeComponent(${bc.id})">Remove</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function updateSummary() {
+            const totalCost = buildComponents.reduce((sum, bc) => sum + bc.cost_at_time, 0);
+            const totalMSRP = buildComponents.reduce((sum, bc) => sum + (bc.msrp || 0), 0);
+            const profit = totalMSRP - totalCost;
+            
+            document.getElementById('totalCost').textContent = `$${totalCost.toFixed(2)}`;
+            document.getElementById('totalMSRP').textContent = `$${totalMSRP.toFixed(2)}`;
+            document.getElementById('profitMargin').textContent = `$${profit.toFixed(2)}`;
+        }
+
+        async function addComponentToBuild() {
+            const componentId = document.getElementById('componentSelector').value;
+            if (!componentId || !currentBuild) return;
+            
+            const component = components.find(c => c.id == componentId);
+            if (!component) return;
+            
+            try {
+                const response = await fetch(`/api/builder/builds/${currentBuild.id}/components`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ component_id: componentId, quantity: 1, cost_at_time: component.cost })
+                });
+                
+                if (response.ok) {
+                    loadBuildComponents();
+                    document.getElementById('componentSelector').value = '';
+                }
+            } catch (error) {
+                console.error('Error adding component:', error);
+            }
+        }
+
+        async function removeComponent(buildComponentId) {
+            try {
+                const response = await fetch(`/api/builder/builds/${currentBuild.id}/components/${buildComponentId}`, {
+                    method: 'PUT'
+                });
+                
+                if (response.ok) {
+                    loadBuildComponents();
+                }
+            } catch (error) {
+                console.error('Error removing component:', error);
+            }
+        }
+
+        function navigateTo(page) {
+            window.location.href = `/${page}`;
+        }
+
+        // Load data on page load
+        loadData();
+    </script>
+</body>
+</html>

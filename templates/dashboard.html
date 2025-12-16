@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <!-- Sidebar Navigation -->
+    <div class="sidebar">
+        <h2>PC Inventory</h2>
+        <div class="nav-item active" onclick="navigateTo('dashboard')">
+            <span>📊</span>
+            <span>Dashboard</span>
+        </div>
+        <div class="nav-item" onclick="navigateTo('inventory')">
+            <span>📦</span>
+            <span>Inventory</span>
+        </div>
+        <div class="nav-item" onclick="navigateTo('builder')">
+            <span>🖥️</span>
+            <span>PC Builder</span>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="header">
+            <h1>Dashboard</h1>
+        </div>
+
+        <p>Dashboard coming soon! This will show inventory stats, build summaries, and profit tracking.</p>
+    </div>
+
+    <script>
+        function navigateTo(page) {
+            window.location.href = `/${page}`;
+        }
+    </script>
+</body>
+</html>
