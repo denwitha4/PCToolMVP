@@ -4,62 +4,292 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Edit Build</title>
-    <link rel="stylesheet" href="/static/css/style.css">
     <style>
-        .builder-grid {
-            display: grid;
-            grid-template-columns: 2fr 1fr;
-            gap: 20px;
-            height: calc(100vh - 120px);
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-        .builder-section {
-            background-color: white;
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            padding: 20px;
-            overflow-y: auto;
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            display: flex;
+            min-height: 100vh;
+            background: #f5f5f5;
         }
-        .left-section {
-            grid-column: 1;
-        }
-        .right-section {
-            display: grid;
-            grid-template-rows: 1fr 1fr;
-            gap: 20px;
-        }
-        .right-top, .right-bottom {
-            background-color: white;
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            padding: 20px;
-            overflow-y: auto;
-        }
-        .builder-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        .builder-table thead {
-            background-color: #34495e;
+
+        .sidebar {
+            width: 250px;
+            background: #2c3e50;
             color: white;
+            padding: 20px;
+            position: fixed;
+            height: 100vh;
         }
-        .builder-table th {
+
+        .sidebar h2 {
+            margin-bottom: 30px;
+            font-size: 24px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
             padding: 12px;
-            text-align: left;
-            font-weight: 600;
-            text-transform: uppercase;
-            font-size: 0.85rem;
-            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
         }
-        .builder-table tbody tr {
-            border-bottom: 1px solid #ecf0f1;
-            transition: background-color 0.2s;
+
+        .nav-item:hover {
+            background: rgba(255, 255, 255, 0.1);
         }
-        .builder-table tbody tr:hover {
-            background-color: #f8f9fa;
+
+        .nav-item.active {
+            background: rgba(255, 255, 255, 0.2);
         }
-        .builder-table td {
-            padding: 12px;
+
+        .main-content {
+            margin-left: 250px;
+            flex: 1;
+            padding: 30px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 28px;
             color: #2c3e50;
+        }
+
+        .add-button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+
+        .add-button:hover {
+            background: #2980b9;
+        }
+
+        .component-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .component-card {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .component-card:hover {
+            border-color: #9b59b6;
+            background: #f8f4fb;
+            transform: scale(1.02);
+            box-shadow: 0 4px 12px rgba(155, 89, 182, 0.15);
+        }
+
+        .component-card.filled {
+            border-color: #27ae60;
+            background: #f0f9f4;
+        }
+
+        .component-icon {
+            width: 40px;
+            height: 40px;
+            background: #f0f0f0;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            margin-bottom: 12px;
+            transition: all 0.2s;
+        }
+
+        .component-card:hover .component-icon {
+            background: #e8d5f2;
+        }
+
+        .component-card.filled .component-icon {
+            background: #d4edda;
+        }
+
+        .component-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 4px;
+        }
+
+        .component-description {
+            font-size: 12px;
+            color: #7f8c8d;
+            margin-bottom: 12px;
+        }
+
+        .component-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border 0.2s;
+        }
+
+        .component-input:focus {
+            outline: none;
+            border-color: #9b59b6;
+            box-shadow: 0 0 0 3px rgba(155, 89, 182, 0.1);
+        }
+
+        .selected-component {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 13px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .selected-component-name {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .selected-component-price {
+            color: #27ae60;
+            font-weight: 600;
+        }
+
+        .remove-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 4px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 11px;
+            margin-top: 8px;
+            transition: background 0.2s;
+        }
+
+        .remove-btn:hover {
+            background: #c0392b;
+        }
+
+        .progress-section {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 30px;
+        }
+
+        .progress-bar-container {
+            height: 10px;
+            background: #e0e0e0;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-bottom: 16px;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #9b59b6, #8e44ad);
+            transition: width 0.5s ease;
+        }
+
+        .progress-text {
+            text-align: center;
+            font-size: 16px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .progress-subtext {
+            text-align: center;
+            font-size: 14px;
+            color: #7f8c8d;
+            margin-top: 4px;
+        }
+
+        .summary-section {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+        }
+
+        .summary-section h3 {
+            margin-bottom: 20px;
+            color: #2c3e50;
+        }
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .summary-row:last-child {
+            border-bottom: none;
+            font-weight: 600;
+            font-size: 18px;
+            color: #27ae60;
+        }
+
+        .dropdown-list {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            margin-top: 4px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 100;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .dropdown-item {
+            padding: 10px;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+            transition: background 0.2s;
+        }
+
+        .dropdown-item:hover {
+            background: #f8f9fa;
+        }
+
+        .dropdown-item:last-child {
+            border-bottom: none;
+        }
+
+        .input-wrapper {
+            position: relative;
         }
     </style>
 </head>
@@ -84,75 +314,70 @@
     <!-- Main Content -->
     <div class="main-content">
         <div class="header">
-            <h1>Edit Build: <span id="buildName"></span></h1>
+            <h1>Edit Build: <span id="buildName">Gaming PC</span></h1>
             <button class="add-button" onclick="navigateTo('builder')">Back to Builds</button>
         </div>
 
-        <div class="builder-grid">
-            <!-- Left Section: Current Build Components -->
-            <div class="builder-section left-section">
-                <h2>Build Components</h2>
-                <table class="builder-table">
-                    <thead>
-                        <tr>
-                            <th>Component</th>
-                            <th>Category</th>
-                            <th>Cost</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="buildTableBody">
-                        <!-- Build components will be loaded here -->
-                    </tbody>
-                </table>
+        <!-- Progress Section -->
+        <div class="progress-section">
+            <div class="progress-bar-container">
+                <div class="progress-bar" id="progressBar"></div>
             </div>
+            <p class="progress-text" id="progressText">0 of 8 components</p>
+            <p class="progress-subtext">Complete build specs help your listing stand out</p>
+        </div>
 
-            <!-- Right Section -->
-            <div class="right-section">
-                <!-- Top Right: Component Selector -->
-                <div class="right-top">
-                    <h3>Add Components</h3>
-                    <select id="componentSelector" onchange="addComponentToBuild()">
-                        <option value="">Select Component</option>
-                        <!-- Options will be loaded dynamically -->
-                    </select>
-                </div>
+        <!-- Component Grid -->
+        <div class="component-grid" id="componentGrid">
+            <!-- Components will be loaded here -->
+        </div>
 
-                <!-- Bottom Right: Build Summary -->
-                <div class="right-bottom">
-                    <h3>Build Summary</h3>
-                    <table class="builder-table">
-                        <tbody>
-                            <tr>
-                                <td>Total Cost:</td>
-                                <td id="totalCost">$0.00</td>
-                            </tr>
-                            <tr>
-                                <td>Estimated MSRP:</td>
-                                <td id="totalMSRP">$0.00</td>
-                            </tr>
-                            <tr>
-                                <td>Profit Margin:</td>
-                                <td id="profitMargin">$0.00</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+        <!-- Build Summary -->
+        <div class="summary-section">
+            <h3>Build Summary</h3>
+            <div class="summary-row">
+                <span>Total Cost:</span>
+                <span id="totalCost">$0.00</span>
+            </div>
+            <div class="summary-row">
+                <span>Estimated MSRP:</span>
+                <span id="totalMSRP">$0.00</span>
+            </div>
+            <div class="summary-row">
+                <span>Profit Margin:</span>
+                <span id="profitMargin">$0.00</span>
             </div>
         </div>
     </div>
 
     <script>
-        let currentBuild = null;
+        // Component categories with icons and descriptions
+        const componentCategories = [
+            { name: 'GPU', title: 'Graphics Card', icon: '🖥️', placeholder: 'Example: EVGA GeForce RTX 3080 Ti' },
+            { name: 'CPU', title: 'Processor', icon: '🔲', placeholder: 'Example: Intel Core i9-13900K' },
+            { name: 'Motherboard', title: 'Motherboard', icon: '📟', placeholder: 'Example: ASUS ROG Strix B550-F' },
+            { name: 'RAM', title: 'RAM', icon: '🔷', placeholder: 'Example: G.Skill Trident Z 32GB' },
+            { name: 'Storage', title: 'Storage', icon: '💾', placeholder: 'Example: Samsung 980 Pro 1TB' },
+            { name: 'PSU', title: 'Power Supply', icon: '⚡', placeholder: 'Example: Corsair RM850x' },
+            { name: 'Case', title: 'Case', icon: '📦', placeholder: 'Example: NZXT H510' },
+            { name: 'CPU Cooler', title: 'CPU Cooler', icon: '❄️', placeholder: 'Example: Noctua NH-D15' }
+        ];
+
         let components = [];
-        let buildComponents = [];
+        let buildComponents = {};
+        let currentBuild = null;
+        let activeDropdown = null;
 
-        // Get build ID from URL
-        const urlParams = new URLSearchParams(window.location.search);
-        const buildId = parseInt(window.location.pathname.split('/').pop());
+        // Map UI categories to API categories
+        const categoryMap = {
+            'CPU Cooler': 'Cooling'
+        };
 
-        // Load components and build data on page load
-        async function loadData() {
+        // Initialize
+        async function init() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const buildId = urlParams.get('id') || 1;
+            
             try {
                 const [componentsResponse, buildResponse] = await Promise.all([
                     fetch('/api/inventory/components'),
@@ -161,57 +386,170 @@
                 components = await componentsResponse.json();
                 currentBuild = await buildResponse.json();
                 
-                if (currentBuild) {
-                    document.getElementById('buildName').textContent = currentBuild.name;
-                    loadBuildComponents();
-                }
+                document.getElementById('buildName').textContent = currentBuild.name;
                 
-                populateComponentSelector();
+                await loadBuildComponents();
+                renderComponentCards();
+                updateProgress();
+                updateSummary();
             } catch (error) {
                 console.error('Error loading data:', error);
             }
         }
 
-        function populateComponentSelector() {
-            const selector = document.getElementById('componentSelector');
-            selector.innerHTML = '<option value="">Select Component</option>';
-            components.forEach(component => {
-                const option = document.createElement('option');
-                option.value = component.id;
-                option.textContent = `${component.name} (${component.category}) - $${component.cost}`;
-                selector.appendChild(option);
-            });
-        }
-
         async function loadBuildComponents() {
-            if (!currentBuild) return;
             try {
                 const response = await fetch(`/api/builder/builds/${currentBuild.id}/components`);
-                buildComponents = await response.json();
-                renderBuildTable();
-                updateSummary();
+                const bcData = await response.json();
+                
+                buildComponents = {};
+                bcData.forEach(bc => {
+                    const uiCategory = Object.keys(categoryMap).find(key => categoryMap[key] === bc.category) || bc.category;
+                    buildComponents[uiCategory] = {
+                        componentId: bc.component_id,
+                        buildComponentId: bc.id,
+                        name: bc.component_name,
+                        category: bc.category,
+                        cost: bc.cost_at_time,
+                        msrp: bc.msrp
+                    };
+                });
             } catch (error) {
                 console.error('Error loading build components:', error);
             }
         }
 
-        function renderBuildTable() {
-            const tbody = document.getElementById('buildTableBody');
-            tbody.innerHTML = buildComponents.map(bc => `
-                <tr>
-                    <td>${bc.component_name}</td>
-                    <td>${bc.category}</td>
-                    <td>$${bc.cost_at_time.toFixed(2)}</td>
-                    <td>
-                        <button class="action-btn delete-btn" onclick="removeComponent(${bc.id})">Remove</button>
-                    </td>
-                </tr>
+        function renderComponentCards() {
+            const grid = document.getElementById('componentGrid');
+            grid.innerHTML = componentCategories.map(category => {
+                const selected = buildComponents[category.name];
+                const isFilled = !!selected;
+                
+                return `
+                    <div class="component-card ${isFilled ? 'filled' : ''}" data-category="${category.name}">
+                        <div class="component-icon">${category.icon}</div>
+                        <div class="component-title">${category.title}</div>
+                        <div class="component-description">${category.description}</div>
+                        ${isFilled ? `
+                            <div class="selected-component">
+                                <div>
+                                    <div class="selected-component-name">${selected.name}</div>
+                                    <div class="selected-component-price">$${selected.cost.toFixed(2)}</div>
+                                </div>
+                            </div>
+                            <button class="remove-btn" onclick="removeComponent('${category.name}')">Remove</button>
+                        ` : `
+                            <div class="input-wrapper">
+                                <input 
+                                    type="text" 
+                                    class="component-input" 
+                                    placeholder="${category.placeholder}"
+                                    oninput="filterComponents('${category.name}', this.value)"
+                                    onfocus="showDropdown('${category.name}', this)"
+                                    onblur="hideDropdown('${category.name}')"
+                                />
+                                <div id="dropdown-${category.name}" class="dropdown-list" style="display: none;"></div>
+                            </div>
+                        `}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function showDropdown(category, input) {
+            activeDropdown = category;
+            filterComponents(category, input.value);
+        }
+
+        function hideDropdown(category) {
+            setTimeout(() => {
+                const dropdown = document.getElementById(`dropdown-${category}`);
+                if (dropdown) dropdown.style.display = 'none';
+                activeDropdown = null;
+            }, 200);
+        }
+
+        function filterComponents(category, searchTerm) {
+            const dropdown = document.getElementById(`dropdown-${category}`);
+            if (!dropdown) return;
+
+            const mappedCategory = categoryMap[category] || category;
+
+            const filtered = components.filter(c => 
+                c.category === mappedCategory && 
+                c.name.toLowerCase().includes(searchTerm.toLowerCase())
+            );
+
+            if (filtered.length === 0) {
+                dropdown.style.display = 'none';
+                return;
+            }
+
+            dropdown.innerHTML = filtered.map(c => `
+                <div class="dropdown-item" onmousedown="selectComponent('${category}', ${c.id})">
+                    <div style="font-weight: 600;">${c.name}</div>
+                    <div style="color: #27ae60; font-size: 12px;">$${c.cost.toFixed(2)}</div>
+                    <div style="color: #c9c9c9; font-size: 12px;">$${c.msrp.toFixed(2)}</div>
+                </div>
             `).join('');
+            
+            dropdown.style.display = 'block';
+        }
+
+        async function selectComponent(category, componentId) {
+            const component = components.find(c => c.id === componentId);
+            if (!component || !currentBuild) return;
+            
+            try {
+                const response = await fetch(`/api/builder/builds/${currentBuild.id}/components`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ component_id: componentId, quantity: 1, cost_at_time: component.cost, })
+                });
+                
+                if (response.ok) {
+                    await loadBuildComponents();
+                    renderComponentCards();
+                    updateProgress();
+                    updateSummary();
+                }
+            } catch (error) {
+                console.error('Error adding component:', error);
+            }
+        }
+
+        async function removeComponent(category) {
+            const bc = buildComponents[category];
+            if (!bc || !currentBuild) return;
+            
+            try {
+                const response = await fetch(`/api/builder/builds/${currentBuild.id}/components/${bc.buildComponentId}`, {
+                    method: 'PUT'
+                });
+                
+                if (response.ok) {
+                    await loadBuildComponents();
+                    renderComponentCards();
+                    updateProgress();
+                    updateSummary();
+                }
+            } catch (error) {
+                console.error('Error removing component:', error);
+            }
+        }
+
+        function updateProgress() {
+            const filled = Object.keys(buildComponents).length;
+            const total = componentCategories.length;
+            const percentage = (filled / total) * 100;
+            
+            document.getElementById('progressBar').style.width = `${percentage}%`;
+            document.getElementById('progressText').textContent = `${filled} of ${total} components`;
         }
 
         function updateSummary() {
-            const totalCost = buildComponents.reduce((sum, bc) => sum + bc.cost_at_time, 0);
-            const totalMSRP = buildComponents.reduce((sum, bc) => sum + (bc.msrp || 0), 0);
+            const totalCost = Object.values(buildComponents).reduce((sum, c) => sum + c.cost, 0);
+            const totalMSRP = Object.values(buildComponents).reduce((sum, c) => sum + c.msrp, 0);
             const profit = totalMSRP - totalCost;
             
             document.getElementById('totalCost').textContent = `$${totalCost.toFixed(2)}`;
@@ -219,49 +557,13 @@
             document.getElementById('profitMargin').textContent = `$${profit.toFixed(2)}`;
         }
 
-        async function addComponentToBuild() {
-            const componentId = document.getElementById('componentSelector').value;
-            if (!componentId || !currentBuild) return;
-            
-            const component = components.find(c => c.id == componentId);
-            if (!component) return;
-            
-            try {
-                const response = await fetch(`/api/builder/builds/${currentBuild.id}/components`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ component_id: componentId, quantity: 1, cost_at_time: component.cost })
-                });
-                
-                if (response.ok) {
-                    loadBuildComponents();
-                    document.getElementById('componentSelector').value = '';
-                }
-            } catch (error) {
-                console.error('Error adding component:', error);
-            }
-        }
-
-        async function removeComponent(buildComponentId) {
-            try {
-                const response = await fetch(`/api/builder/builds/${currentBuild.id}/components/${buildComponentId}`, {
-                    method: 'PUT'
-                });
-                
-                if (response.ok) {
-                    loadBuildComponents();
-                }
-            } catch (error) {
-                console.error('Error removing component:', error);
-            }
-        }
-
         function navigateTo(page) {
-            window.location.href = `/${page}`;
+            console.log('Navigate to:', page);
+            // window.location.href = `/${page}`;
         }
 
-        // Load data on page load
-        loadData();
+        // Initialize on load
+        init();
     </script>
 </body>
 </html>

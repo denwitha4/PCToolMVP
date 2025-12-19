@@ -306,3 +306,189 @@ td {
     margin-bottom: 10px;
     font-size: 1.3rem;
 }
+
+/* Builder Page Styles */
+.builder-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 20px;
+    height: calc(100vh - 120px);
+}
+.builder-section {
+    background-color: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    overflow-y: auto;
+}
+.left-section {
+    grid-column: 1;
+}
+.right-section {
+    display: grid;
+    grid-template-rows: 1fr 1fr;
+    gap: 20px;
+}
+.right-top, .right-bottom {
+    background-color: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    overflow-y: auto;
+}
+.builder-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.builder-table thead {
+    background-color: #34495e;
+    color: white;
+}
+.builder-table th {
+    padding: 12px;
+    text-align: left;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
+}
+.builder-table tbody tr {
+    border-bottom: 1px solid #ecf0f1;
+    transition: background-color 0.2s;
+}
+.builder-table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+.builder-table td {
+    padding: 12px;
+    color: #2c3e50;
+}
+.component-table-container {
+    max-height: 300px;
+    overflow-y: auto;
+}
+.add-btn {
+    background-color: #27ae60;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8rem;
+}
+.add-btn:hover {
+    background-color: #229954;
+}
+
+/* Index Page Styles */
+.index-body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.container {
+    background: white;
+    padding: 60px 80px;
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    text-align: center;
+}
+.index-h1 {
+    color: #333;
+    margin-bottom: 40px;
+    font-size: 2.5rem;
+}
+.button-group {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+}
+.index-button {
+    padding: 15px 40px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+.btn-primary {
+    background: #667eea;
+    color: white;
+}
+.btn-primary:hover {
+    background: #5568d3;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+.btn-secondary {
+    background: #48bb78;
+    color: white;
+}
+.btn-secondary:hover {
+    background: #38a169;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(72, 187, 120, 0.4);
+}
+.index-button:active {
+    transform: translateY(0);
+}
+.message {
+    margin-top: 30px;
+    font-size: 1.2rem;
+    color: #666;
+    min-height: 30px;
+}
+
+/* Build Components Layout */
+.build-components {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+.component-section h3 {
+    margin-bottom: 10px;
+    font-size: 1.1rem;
+    color: #2c3e50;
+}
+.component-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 10px;
+}
+.component-card {
+    background-color: #f8f9fa;
+    border: 1px solid #ecf0f1;
+    border-radius: 8px;
+    padding: 10px;
+    text-align: center;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+.component-card p {
+    margin: 5px 0;
+    font-size: 0.9rem;
+}
+.component-card .remove-btn {
+    background-color: #e74c3c;
+    color: white;
+    border: none;
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8rem;
+}
+.component-card .remove-btn:hover {
+    background-color: #c0392b;
+}
+.category-filter {
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 15px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1rem;
+}
