@@ -5,6 +5,69 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Edit Build</title>
     <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        .component-name-hover {
+            cursor: pointer;
+            transition: text-decoration 0.2s ease;
+        }
+        
+        .component-name-hover:hover {
+            text-decoration: underline;
+        }
+        
+        .component-chevron {
+            margin-left: 8px;
+            font-size: 18px;
+            color: #7f8c8d;
+            display: inline-block;
+            transition: transform 0.3s ease;
+        }
+        
+        .component-chevron.open {
+            transform: rotate(90deg);
+        }
+        
+        .dropdown-item {
+            background-color: #f5f5f5;
+            padding: 8px;
+            border-bottom: 1px solid #e0e0e0;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            font-size: 13px;
+        }
+        
+        .dropdown-item:hover {
+            background-color: #e8e8e8;
+        }
+        
+        .dropdown-no-items {
+            background-color: #f5f5f5;
+            padding: 8px;
+            color: #7f8c8d;
+            text-align: center;
+            font-size: 13px;
+        }
+        
+        .selector-wrapper {
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s ease;
+        }
+        
+        .table-dropdown-list {
+            max-height: 0;
+            overflow-y: auto;
+            transition: max-height 0.3s ease, opacity 0.3s ease, padding 0.3s ease;
+            opacity: 0;
+            padding: 0;
+        }
+        
+        .table-dropdown-list.open {
+            max-height: 160px;
+            opacity: 1;
+            padding: 0;
+        }
+    </style>
 </head>
 <body>
     <!-- Sidebar Navigation -->
@@ -40,9 +103,25 @@
             <p class="progress-subtext">Complete build specs help your listing stand out</p>
         </div>
 
-        <!-- Component Grid -->
-        <div class="component-grid" id="componentGrid">
-            <!-- Components will be loaded here -->
+        <!-- Component List Table -->
+        <div class="component-table-wrapper">
+            <table class="component-list-table">
+                <thead>
+                    <tr>
+                        <th>Component</th>
+                        <th>Selection</th>
+                        <th>MSRP</th>
+                        <th>Shipping</th>
+                        <th>Tax</th>
+                        <th>Availability</th>
+                        <th>Price</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="componentTableBody">
+                    <!-- Rows will be injected here -->
+                </tbody>
+            </table>
         </div>
 
         <!-- Build Summary -->
@@ -66,15 +145,30 @@
     <script>
         // Component categories with icons and descriptions
         const componentCategories = [
-            { name: 'GPU', title: 'Graphics Card', icon: '🖥️', placeholder: 'Example: EVGA GeForce RTX 3080 Ti' },
-            { name: 'CPU', title: 'Processor', icon: '🔲', placeholder: 'Example: Intel Core i9-13900K' },
-            { name: 'Motherboard', title: 'Motherboard', icon: '📟', placeholder: 'Example: ASUS ROG Strix B550-F' },
-            { name: 'RAM', title: 'RAM', icon: '🔷', placeholder: 'Example: G.Skill Trident Z 32GB' },
-            { name: 'Storage', title: 'Storage', icon: '💾', placeholder: 'Example: Samsung 980 Pro 1TB' },
-            { name: 'PSU', title: 'Power Supply', icon: '⚡', placeholder: 'Example: Corsair RM850x' },
-            { name: 'Case', title: 'Case', icon: '📦', placeholder: 'Example: NZXT H510' },
-            { name: 'CPU Cooler', title: 'CPU Cooler', icon: '❄️', placeholder: 'Example: Noctua NH-D15' }
+            { name: 'CPU', title: 'CPU', placeholder: 'Example: Intel Core i9-13900K' },
+            { name: 'CPU Cooler', title: 'CPU Cooler', placeholder: 'Example: Noctua NH-D15' },
+            { name: 'Motherboard', title: 'Motherboard', placeholder: 'Example: ASUS ROG Strix B550-F' },
+            { name: 'Memory', title: 'Memory', placeholder: 'Example: G.Skill Trident Z 32GB' },
+            { name: 'Storage', title: 'Storage', placeholder: 'Example: Samsung 980 Pro 1TB' },
+            { name: 'Video Card', title: 'Video Card', placeholder: 'Example: EVGA GeForce RTX 3080 Ti' },
+            { name: 'Case', title: 'Case', placeholder: 'Example: NZXT H510' },
+            { name: 'Power Supply', title: 'Power Supply', placeholder: 'Example: Corsair RM850x' }
         ];
+
+        function safeId(str) {
+            return str.replace(/\s+/g, '_');
+        }
+
+        function openSelector(category) {
+            const id = safeId(category);
+            const wrapper = document.getElementById(`selector-${id}`);
+            const input = document.getElementById(`input-${id}`);
+            if (wrapper) wrapper.style.display = 'block';
+            if (input) {
+                input.focus();
+                filterComponents(category, '');
+            }
+        }
 
         let components = [];
         let buildComponents = {};
@@ -83,7 +177,10 @@
 
         // Map UI categories to API categories
         const categoryMap = {
-            'CPU Cooler': 'Cooling'
+            'CPU Cooler': 'Cooling',
+            'Memory': 'RAM',
+            'Video Card': 'GPU',
+            'Power Supply': 'PSU'
         };
 
         // Initialize
@@ -133,39 +230,56 @@
         }
 
         function renderComponentCards() {
-            const grid = document.getElementById('componentGrid');
-            grid.innerHTML = componentCategories.map(category => {
+            const tbody = document.getElementById('componentTableBody');
+            tbody.innerHTML = componentCategories.map(category => {
                 const selected = buildComponents[category.name];
                 const isFilled = !!selected;
+                const id = safeId(category.name);
                 
-                return `
-                    <div class="component-card ${isFilled ? 'filled' : ''}" data-category="${category.name}">
-                        <div class="component-icon">${category.icon}</div>
-                        <div class="component-title">${category.title}</div>
-                        <div class="component-description">${category.description}</div>
-                        ${isFilled ? `
-                            <div class="selected-component">
-                                <div>
-                                    <div class="selected-component-name">${selected.name}</div>
-                                    <div class="selected-component-price">$${selected.cost.toFixed(2)}</div>
+                if (isFilled) {
+                    return `
+                        <tr>
+                            <td><a href="#" class="component-link">${category.title}</a></td>
+                            <td>
+                                <div class="selector-wrapper">
+                                    <div class="selected-component-cell" onclick="toggleDropdown('${category.name}', event)" style="cursor: pointer;">
+                                        <span class="component-name-hover">${selected.name}</span>
+                                        <span class="component-chevron" id="chevron-${id}">›</span>
+                                    </div>
+                                    <div id="dropdown-${id}" class="table-dropdown-list">
+                                        <!-- Dropdown items will be populated here -->
+                                    </div>
                                 </div>
-                            </div>
-                            <button class="remove-btn" onclick="removeComponent('${category.name}')">Remove</button>
-                        ` : `
-                            <div class="input-wrapper">
-                                <input 
-                                    type="text" 
-                                    class="component-input" 
-                                    placeholder="${category.placeholder}"
-                                    oninput="filterComponents('${category.name}', this.value)"
-                                    onfocus="showDropdown('${category.name}', this)"
-                                    onblur="hideDropdown('${category.name}')"
-                                />
-                                <div id="dropdown-${category.name}" class="dropdown-list" style="display: none;"></div>
-                            </div>
-                        `}
-                    </div>
-                `;
+                            </td>
+                            <td>$${selected.msrp.toFixed(2)}</td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td>$${selected.cost.toFixed(2)}</td>
+                            <td><button class="remove-btn" onclick="removeComponent('${category.name}')">Remove</button></td>
+                        </tr>
+                    `;
+                } else {
+                    return `
+                        <tr>
+                            <td><a href="#" class="component-link">${category.title}</a></td>
+                            <td>
+                                <div class="selector-wrapper">
+                                    <button class="select-btn" onclick="toggleDropdown('${category.name}', event)">+ Choose ${category.title}</button>
+                                    <div id="dropdown-${id}" class="table-dropdown-list">
+                                        <!-- Dropdown items will be populated here -->
+                                    </div>
+                                </div>
+                            </td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                        </tr>
+                    `;
+                }
             }).join('');
         }
 
@@ -174,16 +288,55 @@
             filterComponents(category, input.value);
         }
 
+        function toggleDropdown(category, event) {
+            if (event) event.preventDefault();
+            const id = safeId(category);
+            const dropdown = document.getElementById(`dropdown-${id}`);
+            const chevron = document.getElementById(`chevron-${id}`);
+            if (!dropdown) return;
+            
+            const isOpen = dropdown.classList.contains('open');
+            
+            if (isOpen) {
+                dropdown.classList.remove('open');
+                if (chevron) chevron.classList.remove('open');
+                return;
+            }
+            
+            const mappedCategory = categoryMap[category] || category;
+            const filtered = components.filter(c => c.category === mappedCategory);
+            
+            if (filtered.length === 0) {
+                dropdown.innerHTML = '<div class="dropdown-no-items">No Other Components</div>';
+            } else {
+                dropdown.innerHTML = filtered.map(c => `
+                    <div class="dropdown-item" onmousedown="selectComponent('${category}', ${c.id})">
+                        <div style="font-weight: 600;">${c.name}</div>
+                        <div style="display: flex; gap: 20px; font-size: 12px; color: #7f8c8d; margin-top: 4px;">
+                            <span>Cost: $${c.cost.toFixed(2)}</span>\n                            <span>MSRP: $${c.msrp.toFixed(2)}</span>
+                        </div>
+                    </div>
+                `).join('');
+            }
+            
+            dropdown.classList.add('open');
+            if (chevron) chevron.classList.add('open');
+        }
+
         function hideDropdown(category) {
             setTimeout(() => {
-                const dropdown = document.getElementById(`dropdown-${category}`);
+                const id = safeId(category);
+                const dropdown = document.getElementById(`dropdown-${id}`);
                 if (dropdown) dropdown.style.display = 'none';
+                const selector = document.getElementById(`selector-${id}`);
+                if (selector) selector.style.display = 'none';
                 activeDropdown = null;
             }, 200);
         }
 
         function filterComponents(category, searchTerm) {
-            const dropdown = document.getElementById(`dropdown-${category}`);
+            const id = safeId(category);
+            const dropdown = document.getElementById(`dropdown-${id}`);
             if (!dropdown) return;
 
             const mappedCategory = categoryMap[category] || category;
@@ -194,7 +347,8 @@
             );
 
             if (filtered.length === 0) {
-                dropdown.style.display = 'none';
+                dropdown.innerHTML = '<div class="dropdown-no-items">No Other Components</div>';
+                dropdown.style.display = 'block';
                 return;
             }
 
@@ -237,7 +391,7 @@
             
             try {
                 const response = await fetch(`/api/builder/builds/${currentBuild.id}/components/${bc.buildComponentId}`, {
-                    method: 'PUT'
+                    method: 'DELETE'
                 });
                 
                 if (response.ok) {

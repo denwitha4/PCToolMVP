@@ -93,6 +93,16 @@ def add_component_to_build(build_id: int, component_data: BuildComponentCreate, 
     if not component:
         raise HTTPException(status_code=404, detail="Component not found")
     
+    # Remove any existing component of the same category for this build
+    existing_component = db.query(BuildComponent).filter(
+        BuildComponent.build_id == build_id,
+        BuildComponent.component_id == db.query(Component.id).filter(Component.category == component.category).subquery()
+    ).first()
+    
+    if existing_component:
+        db.delete(existing_component)
+        db.commit()
+    
     new_bc = BuildComponent(
         build_id=build_id,
         component_id=component_data.component_id,
