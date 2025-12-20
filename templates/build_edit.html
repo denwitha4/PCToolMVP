@@ -29,11 +29,14 @@
         
         .dropdown-item {
             background-color: #f5f5f5;
-            padding: 8px;
+            padding: 12px;
             border-bottom: 1px solid #e0e0e0;
             cursor: pointer;
             transition: background-color 0.2s ease;
             font-size: 13px;
+            display: block;
+            width: 100%;
+            text-align: left;
         }
         
         .dropdown-item:hover {
@@ -42,30 +45,53 @@
         
         .dropdown-no-items {
             background-color: #f5f5f5;
-            padding: 8px;
+            padding: 12px;
             color: #7f8c8d;
             text-align: center;
             font-size: 13px;
+            display: block;
+            width: 100%;
         }
         
         .selector-wrapper {
             display: flex;
             flex-direction: column;
             transition: all 0.3s ease;
+            position: relative;
+            width: 100%;
         }
         
         .table-dropdown-list {
             max-height: 0;
-            overflow-y: auto;
-            transition: max-height 0.3s ease, opacity 0.3s ease, padding 0.3s ease;
+            overflow-y: hidden;
+            overflow-x: hidden;
+            transition: max-height 0.3s ease, opacity 0.3s ease;
             opacity: 0;
             padding: 0;
+            position: relative;
+            background-color: white;
+            border-top: 1px solid #e0e0e0;
+            margin-top: 8px;
+            width: 70%;
         }
         
         .table-dropdown-list.open {
-            max-height: 160px;
+            max-height: 300px;
             opacity: 1;
-            padding: 0;
+            overflow-y: auto;
+        }
+        
+        .component-list-table tbody tr {
+            position: relative;
+        }
+        
+        .component-list-table tbody tr:has(.table-dropdown-list.open) {
+            position: relative;
+        }
+        
+        .component-list-table tbody td {
+            vertical-align: top;
+            overflow: visible;
         }
     </style>
 </head>
