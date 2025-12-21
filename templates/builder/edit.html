@@ -147,9 +147,12 @@
         <span id="profitMargin">$0.00</span>
     </div>
 </div>
+<!-- Include the modal component -->
+{% include 'components/component_modal.html' %}
 {% endblock %}
 
 {% block extra_js %}
+<script src="/static/js/component-modal.js"></script>
 <script>
     // Component categories with icons and descriptions
     const componentCategories = [

@@ -34,6 +34,7 @@ class Component(Base): ## Defines a specific component
     category = Column(Enum(ComponentCategory), nullable=False)
     cost_per_unit = Column(Float, nullable=False)  # What you paid
     msrp = Column(Float, nullable=True)  # What you sell for (optional)
+    #in_build = Column(bool, nullable=False) # Whether or not it is in a build
     
     # Relationship to builds
     build_components = relationship("BuildComponent", back_populates="component")
