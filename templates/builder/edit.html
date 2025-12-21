@@ -400,7 +400,7 @@
         
         try {
             const response = await fetch(`/api/builder/builds/${currentBuild.id}/components/${bc.buildComponentId}`, {
-                method: 'DELETE'
+                method: 'PUT'
             });
             
             if (response.ok) {
