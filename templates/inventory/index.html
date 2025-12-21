@@ -1,0 +1,255 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Build{% endblock %}
+
+{% block extra_css %}>
+
+<div class="main-content">
+    <div class="header">
+        <h1>Inventory Management</h1>
+        <button class="add-button" onclick="openModal()">+ Add Component</button>
+    </div>
+
+    <!-- Search and Filter Controls -->
+    <div class="controls">
+        <input type="text" class="search-box" id="searchBox" placeholder="Search by name..." onkeyup="filterTable()">
+        <select class="filter-select" id="categoryFilter" onchange="filterTable()">
+            <option value="">All Categories</option>
+            <option value="CPU">CPU</option>
+            <option value="GPU">GPU</option>
+            <option value="Motherboard">Motherboard</option>
+            <option value="RAM">RAM</option>
+            <option value="Storage">Storage</option>
+            <option value="PSU">PSU</option>
+            <option value="Case">Case</option>
+            <option value="Cooling">Cooling</option>
+            <option value="Extras">Extras</option>
+        </select>
+    </div>
+
+    <!-- Inventory Table -->
+    <div class="inventory-table">
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Category</th>
+                    <th>Cost</th>
+                    <th>MSRP</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="inventoryTableBody">
+                <!-- Data will be loaded here -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Add/Edit Component Modal -->
+<div class="modal" id="componentModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="modalTitle">Add Component</h2>
+            <button class="close-btn" onclick="closeModal()">×</button>
+        </div>
+        <div class="form-group">
+            <label>Component Name</label>
+            <input type="text" id="componentName" placeholder="e.g., RTX 3070 Ti">
+        </div>
+        <div class="form-group">
+            <label>Category</label>
+            <select id="componentCategory">
+                <option value="">Select Category</option>
+                <option value="CPU">CPU</option>
+                <option value="GPU">GPU</option>
+                <option value="Motherboard">Motherboard</option>
+                <option value="RAM">RAM</option>
+                <option value="Storage">Storage</option>
+                <option value="PSU">PSU</option>
+                <option value="Case">Case</option>
+                <option value="Cooling">Cooling</option>
+                <option value="Extras">Extras</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Cost per Unit ($)</label>
+            <input type="number" id="componentCost" step="0.01" placeholder="0.00">
+        </div>
+        <div class="form-group">
+            <label>MSRP ($)</label>
+            <input type="number" id="componentMSRP" step="0.01" placeholder="0.00">
+        </div>
+        <div class="form-actions">
+            <button class="cancel-btn" onclick="closeModal()">Cancel</button>
+            <button class="submit-btn" onclick="saveComponent()">Save</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let components = [];
+    let editingId = null;
+
+    // Load components from API
+    async function loadComponents() {
+        try {
+            const response = await fetch('/api/inventory/components');
+            components = await response.json();
+            renderTable();
+        } catch (error) {
+            console.error('Error loading components:', error);
+        }
+    }
+
+    // Render table
+    function renderTable() {
+        const tbody = document.getElementById('inventoryTableBody');
+        
+        if (components.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state"><h3>No components yet</h3><p>Click "Add Component" to get started</p></div></td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = components.map(component => `
+            <tr>
+                <td><strong>${component.name}</strong></td>
+                <td><span class="category-badge badge-${component.category.toLowerCase()}">${component.category}</span></td>
+                <td>$${component.cost.toFixed(2)}</td>
+                <td>$${component.msrp ? component.msrp.toFixed(2) : 'N/A'}</td>
+                <td>
+                    <div class="action-buttons">
+                        <button class="action-btn edit-btn" onclick="editComponent(${component.id})">Edit</button>
+                        <button class="action-btn delete-btn" onclick="deleteComponent(${component.id})">Delete</button>
+                    </div>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    // Filter table
+    function filterTable() {
+        const searchTerm = document.getElementById('searchBox').value.toLowerCase();
+        const categoryFilter = document.getElementById('categoryFilter').value;
+
+        const filtered = components.filter(component => {
+            const matchesSearch = component.name.toLowerCase().includes(searchTerm);
+            const matchesCategory = !categoryFilter || component.category === categoryFilter;
+            return matchesSearch && matchesCategory;
+        });
+
+        const tbody = document.getElementById('inventoryTableBody');
+        tbody.innerHTML = filtered.map(component => `
+            <tr>
+                <td><strong>${component.name}</strong></td>
+                <td><span class="category-badge badge-${component.category.toLowerCase()}">${component.category}</span></td>
+                <td>$${component.cost.toFixed(2)}</td>
+                <td>$${component.msrp ? component.msrp.toFixed(2) : 'N/A'}</td>
+                <td>
+                    <div class="action-buttons">
+                        <button class="action-btn edit-btn" onclick="editComponent(${component.id})">Edit</button>
+                        <button class="action-btn delete-btn" onclick="deleteComponent(${component.id})">Delete</button>
+                    </div>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    // Modal functions
+    function openModal() {
+        document.getElementById('modalTitle').textContent = 'Add Component';
+        document.getElementById('componentName').value = '';
+        document.getElementById('componentCategory').value = '';
+        document.getElementById('componentCost').value = '';
+        document.getElementById('componentMSRP').value = '';
+        editingId = null;
+        document.getElementById('componentModal').classList.add('active');
+    }
+
+    function closeModal() {
+        document.getElementById('componentModal').classList.remove('active');
+    }
+
+    function editComponent(id) {
+        const component = components.find(c => c.id === id);
+        if (!component) return;
+
+        document.getElementById('modalTitle').textContent = 'Edit Component';
+        document.getElementById('componentName').value = component.name;
+        document.getElementById('componentCategory').value = component.category;
+        document.getElementById('componentCost').value = component.cost;
+        document.getElementById('componentMSRP').value = component.msrp || '';
+        editingId = id;
+        document.getElementById('componentModal').classList.add('active');
+    }
+
+    async function saveComponent() {
+        const name = document.getElementById('componentName').value;
+        const category = document.getElementById('componentCategory').value;
+        const cost = parseFloat(document.getElementById('componentCost').value);
+        const msrp = parseFloat(document.getElementById('componentMSRP').value) || null;
+
+        if (!name || !category || !cost) {
+            alert('Please fill in all required fields');
+            return;
+        }
+
+        const componentData = { name, category, cost_per_unit: cost, msrp };
+
+        try {
+            let response;
+            if (editingId) {
+                response = await fetch(`/api/inventory/components/${editingId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(componentData)
+                });
+            } else {
+                response = await fetch('/api/inventory/components', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(componentData)
+                });
+            }
+
+            if (response.ok) {
+                await loadComponents(); // Reload components
+                closeModal();
+            } else {
+                const error = await response.json();
+                alert('Error saving component: ' + (error.detail || 'Unknown error'));
+            }
+        } catch (error) {
+            console.error('Error saving component:', error);
+            alert('Error saving component');
+        }
+    }
+
+    async function deleteComponent(id) {
+        if (!confirm('Are you sure you want to delete this component?')) return;
+
+        try {
+            const response = await fetch(`/api/inventory/components/${id}`, {
+                method: 'DELETE'
+            });
+
+            if (response.ok) {
+                await loadComponents(); // Reload components
+            } else {
+                const error = await response.json();
+                alert('Error deleting component: ' + (error.detail || 'Unknown error'));
+            }
+        } catch (error) {
+            console.error('Error deleting component:', error);
+            alert('Error deleting component');
+        }
+    }
+
+    function navigateTo(page) {
+        window.location.href = `/${page}`;
+    }
+
+    // Load components on page load
+    loadComponents();
+</script>
+{% endblock %}

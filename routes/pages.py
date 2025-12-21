@@ -10,24 +10,24 @@ templates = Jinja2Templates(directory="templates")
 @router.get("/", response_class=HTMLResponse)
 async def landing_page(request: Request):
     """Landing page"""
-    return templates.TemplateResponse("index.html", {"request": request})
+    return templates.TemplateResponse("landing/index.html", {"request": request})
 
 @router.get("/inventory", response_class=HTMLResponse)
 async def inventory_page(request: Request, db: Session = Depends(get_db)):
     """Inventory management page"""
-    return templates.TemplateResponse("inventory.html", {"request": request, "active": "inventory"})
+    return templates.TemplateResponse("inventory/index.html", {"request": request, "active": "inventory"})
 
 @router.get("/dashboard", response_class=HTMLResponse)
 async def dashboard_page(request: Request, db: Session = Depends(get_db)):
     """Dashboard page"""
-    return templates.TemplateResponse("dashboard.html", {"request": request, "active": "dashboard"})
+    return templates.TemplateResponse("dashboard/index.html", {"request": request, "active": "dashboard"})
 
 @router.get("/builder", response_class=HTMLResponse)
 async def builder_page(request: Request):
     """PC Builder page"""
-    return templates.TemplateResponse("builder.html", {"request": request, "active": "builder"})
+    return templates.TemplateResponse("builder/index.html", {"request": request, "active": "builder"})
 
 @router.get("/builder/{build_id}", response_class=HTMLResponse)
 async def builder_edit_page(request: Request, build_id: int, db: Session = Depends(get_db)):
     """Edit specific build page"""
-    return templates.TemplateResponse("build_edit.html", {"request": request, "build_id": build_id, "active": "builder"})
+    return templates.TemplateResponse("builder/edit.html", {"request": request, "build_id": build_id, "active": "builder"})

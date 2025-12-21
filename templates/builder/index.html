@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+
+{% block title %}PC Builder{% endblock %}
+
+{% block content %}
+<div class="header">
+    <h1>PC Builder</h1>
+    <button class="add-button" onclick="createNewBuild()">+ New Build</button>
+</div>
+
+<div class="builder-grid">
+    <!-- Left Section: Builds in Progress -->
+    <div class="builder-section left-section">
+        <h2>Builds in Progress</h2>
+        <table class="builder-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Status</th>
+                    <th>Total Cost</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="buildsTableBody">
+                <!-- Builds will be loaded here -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Right Section -->
+    <div class="right-section">
+        <!-- Top Right: Build Stats -->
+        <div class="right-top">
+            <h3>Build Statistics</h3>
+            <table class="builder-table">
+                <tbody>
+                    <tr>
+                        <td>Total Builds:</td>
+                        <td id="totalBuilds">0</td>
+                    </tr>
+                    <tr>
+                        <td>In Progress:</td>
+                        <td id="inProgressBuilds">0</td>
+                    </tr>
+                    <tr>
+                        <td>Completed:</td>
+                        <td id="completedBuilds">0</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Bottom Right: Placeholder -->
+        <div class="right-bottom">
+            <h3>Quick Actions</h3>
+            <p>Create and manage your PC builds here.</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let builds = [];
+
+    // Load builds on page load
+    async function loadBuilds() {
+        try {
+            const response = await fetch('/api/builder/builds');
+            builds = await response.json();
+            renderBuildsTable();
+        } catch (error) {
+            console.error('Error loading builds:', error);
+        }
+    }
+
+    function renderBuildsTable() {
+        const tbody = document.getElementById('buildsTableBody');
+        const inProgressBuilds = builds.filter(b => b.status === 'In Progress' || b.status === 'Planning');
+        
+        tbody.innerHTML = inProgressBuilds.map(build => `
+            <tr>
+                <td>${build.name}</td>
+                <td>${build.status}</td>
+                <td>$${build.total_cost ? build.total_cost.toFixed(2) : '0.00'}</td>
+                <td>
+                    <div class="action-buttons">
+                        <button class="action-btn edit-btn" onclick="editBuild(${build.id})">Edit</button>
+                        <button class="action-btn delete-btn" onclick="deleteBuild(${build.id})">Delete</button>
+                    </div>
+                </td>
+            </tr>
+        `).join('');
+
+        updateStats();
+    }
+
+    function updateStats() {
+        const totalBuilds = builds.length;
+        const inProgress = builds.filter(b => b.status === 'In Progress' || b.status === 'Planning').length;
+        const completed = builds.filter(b => b.status === 'Completed').length;
+
+        document.getElementById('totalBuilds').textContent = totalBuilds;
+        document.getElementById('inProgressBuilds').textContent = inProgress;
+        document.getElementById('completedBuilds').textContent = completed;
+    }
+
+    function editBuild(buildId) {
+        window.location.href = `/builder/${buildId}`;
+    }
+
+    async function deleteBuild(buildId) {
+        if (!confirm('Are you sure you want to delete this build? Components will remain in inventory.')) return;
+
+        try {
+            const response = await fetch(`/api/builder/builds/${buildId}`, {
+                method: 'DELETE'
+            });
+
+            if (response.ok) {
+                loadBuilds();
+            } else {
+                const error = await response.json();
+                alert('Error deleting build: ' + (error.detail || 'Unknown error'));
+            }
+        } catch (error) {
+            console.error('Error deleting build:', error);
+            alert('Error deleting build');
+        }
+    }
+
+    async function createNewBuild() {
+        const name = prompt('Enter build name:');
+        if (!name) return;
+
+        try {
+            const response = await fetch('/api/builder/builds', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: name, status: 'Planning' })
+            });
+            
+            if (response.ok) {
+                loadBuilds();
+            }
+        } catch (error) {
+            console.error('Error creating build:', error);
+        }
+    }
+
+    // Load builds on page load
+    loadBuilds();
+</script>
+{% endblock %}
