@@ -318,7 +318,7 @@
         const filtered = components.filter(c => c.category === mappedCategory);
         
         if (filtered.length === 0) {
-            dropdown.innerHTML = '<div class="dropdown-no-items">No Other Components</div>';
+            dropdown.innerHTML = `<div class="dropdown-item" onmousedown="openModal('${category}')">+ Add Component</div>`;
         } else {
             dropdown.innerHTML = filtered.map(c => `
                 <div class="dropdown-item" onmousedown="selectComponent('${category}', ${c.id})">

@@ -5,11 +5,8 @@
             <h2 id="modalTitle">Add Component</h2>
             <button class="close-btn" onclick="closeModal()">×</button>
         </div>
-        <div class="form-group">
-            <label>Component Name</label>
-            <input type="text" id="componentName" placeholder="e.g., RTX 3070 Ti">
-        </div>
-        <div class="form-group">
+    
+        <div class="form-group" id="categoryFormGroup">
             <label>Category</label>
             <select id="componentCategory">
                 <option value="">Select Category</option>
@@ -24,14 +21,22 @@
                 <option value="Extras">Extras</option>
             </select>
         </div>
+
+        <div class="form-group">
+            <label>Component Name</label>
+            <input type="text" id="componentName" placeholder="e.g., RTX 3070 Ti">
+        </div>
+
         <div class="form-group">
             <label>Cost per Unit ($)</label>
             <input type="number" id="componentCost" step="0.01" placeholder="0.00">
         </div>
+
         <div class="form-group">
             <label>MSRP ($)</label>
             <input type="number" id="componentMSRP" step="0.01" placeholder="0.00">
         </div>
+        
         <div class="form-actions">
             <button class="cancel-btn" onclick="closeModal()">Cancel</button>
             <button class="submit-btn" onclick="saveComponent()">Save</button>

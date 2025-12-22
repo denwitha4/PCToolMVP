@@ -1,10 +1,23 @@
 // Modal functions (reusable across pages)
-function openModal() {
+function openModal(category = "") {
     document.getElementById('modalTitle').textContent = 'Add Component';
     document.getElementById('componentName').value = '';
-    document.getElementById('componentCategory').value = '';
     document.getElementById('componentCost').value = '';
     document.getElementById('componentMSRP').value = '';
+    const categorySelect = document.getElementById('componentCategory'); // ✓ This name
+    const categoryFormGroup = document.getElementById('categoryFormGroup');
+
+    if (category !== '') {
+        // Hide the entire form group (label + dropdown)
+        categoryFormGroup.style.display = 'none';
+        categorySelect.value = category; // ✓ Fixed - use categorySelect
+        console.log('Category set to:', categorySelect.value);
+    } else {
+        // Show the form group
+        categoryFormGroup.style.display = 'block';
+        categorySelect.value = '';
+    }
+
     editingId = null;
     document.getElementById('componentModal').classList.add('active');
 }
