@@ -69,7 +69,8 @@ async function saveComponent() {
         }
 
         if (response.ok) {
-            await loadComponents(); // This will need to be called from the page
+            data = await response.json();
+            await loadComponents(category, data.id); // This will need to be called from the page
             closeModal();
         } else {
             const error = await response.json();

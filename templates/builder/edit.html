@@ -376,6 +376,8 @@
     }
 
     async function selectComponent(category, componentId) {
+        console.log("Loading Components.")
+        console.log(category, componentId)
         const component = components.find(c => c.id === componentId);
         if (!component || !currentBuild) return;
         
@@ -394,6 +396,18 @@
             }
         } catch (error) {
             console.error('Error adding component:', error);
+        }
+    }
+
+    async function loadComponents(category, componentId){
+        console.log("Loading Components.")
+        console.log(category, componentId)
+        const response = await fetch('/api/inventory/components');
+
+        if (response.ok) {
+            console.log("Response was okay, loading and updating")
+            components = await response.json();
+            selectComponent(category, componentId);
         }
     }
 
