@@ -1,16 +1,24 @@
 <div class="sidebar">
     <h2>PC Inventory</h2>
-    <div class="nav-item {% if active_page == 'dashboard' %}active{% endif %}" onclick="navigateTo('dashboard')">
-        <span>📊</span>
-        <span>Dashboard</span>
+    <div class="nav-item {% if active_page == 'sales' %}active{% endif %}" onclick="navigateTo('sales')">
+        <span>📈</span>
+        <span>Sales</span>
+    </div>
+    <div class="nav-item {% if active_page == 'builder' %}active{% endif %}" onclick="navigateTo('builder')">
+        <span>🖥️</span>
+        <span>PC Builder</span>
     </div>
     <div class="nav-item {% if active_page == 'inventory' %}active{% endif %}" onclick="navigateTo('inventory')">
         <span>📦</span>
         <span>Inventory</span>
     </div>
-    <div class="nav-item {% if active_page == 'builder' %}active{% endif %}" onclick="navigateTo('builder')">
-        <span>🖥️</span>
-        <span>PC Builder</span>
+    <div class="nav-item {% if active_page == 'source' %}active{% endif %}" onclick="navigateTo('source')">
+        <span>🛒</span>
+        <span>Sourcing</span>
+    </div>
+    <div class="nav-item {% if active_page == 'dashboard' %}active{% endif %}" onclick="navigateTo('dashboard')">
+        <span>📊</span>
+        <span>Analytics</span>
     </div>
 </div>
 

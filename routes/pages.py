@@ -12,6 +12,12 @@ async def landing_page(request: Request):
     """Landing page"""
     return templates.TemplateResponse("landing/index.html", {"request": request})
 
+@router.get("/sales", response_class=HTMLResponse)
+async def sales_page(request: Request, db: Session = Depends(get_db)):
+    """Sales management page"""
+    return templates.TemplateResponse("sales/index.html", {"request": request, "active": "sales"})
+
+
 @router.get("/inventory", response_class=HTMLResponse)
 async def inventory_page(request: Request, db: Session = Depends(get_db)):
     """Inventory management page"""
