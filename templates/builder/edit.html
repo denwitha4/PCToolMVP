@@ -118,9 +118,6 @@
                 <th>Component</th>
                 <th>Selection</th>
                 <th>MSRP</th>
-                <th>Shipping</th>
-                <th>Tax</th>
-                <th>Availability</th>
                 <th>Price</th>
                 <th></th>
             </tr>
@@ -156,14 +153,14 @@
 <script>
     // Component categories with icons and descriptions
     const componentCategories = [
+        { name: 'GPU', title: 'GPU', placeholder: 'Example: EVGA GeForce RTX 3080 Ti' },
         { name: 'CPU', title: 'CPU', placeholder: 'Example: Intel Core i9-13900K' },
-        { name: 'CPU Cooler', title: 'CPU Cooler', placeholder: 'Example: Noctua NH-D15' },
+        { name: 'RAM', title: 'RAM', placeholder: 'Example: G.Skill Trident Z 32GB' },
         { name: 'Motherboard', title: 'Motherboard', placeholder: 'Example: ASUS ROG Strix B550-F' },
-        { name: 'Memory', title: 'Memory', placeholder: 'Example: G.Skill Trident Z 32GB' },
         { name: 'Storage', title: 'Storage', placeholder: 'Example: Samsung 980 Pro 1TB' },
-        { name: 'Video Card', title: 'Video Card', placeholder: 'Example: EVGA GeForce RTX 3080 Ti' },
-        { name: 'Case', title: 'Case', placeholder: 'Example: NZXT H510' },
-        { name: 'Power Supply', title: 'Power Supply', placeholder: 'Example: Corsair RM850x' }
+        { name: 'PSU', title: 'PSU', placeholder: 'Example: Corsair RM850x' },
+        { name: 'Cooling', title: 'Cooling', placeholder: 'Example: Noctua NH-D15' },
+        { name: 'Case', title: 'Case', placeholder: 'Example: NZXT H510' }
     ];
 
     function safeId(str) {
@@ -185,14 +182,6 @@
     let buildComponents = {};
     let currentBuild = null;
     let activeDropdown = null;
-
-    // Map UI categories to API categories
-    const categoryMap = {
-        'CPU Cooler': 'Cooling',
-        'Memory': 'RAM',
-        'Video Card': 'GPU',
-        'Power Supply': 'PSU'
-    };
 
     // Initialize
     async function init() {
@@ -225,8 +214,7 @@
             
             buildComponents = {};
             bcData.forEach(bc => {
-                const uiCategory = Object.keys(categoryMap).find(key => categoryMap[key] === bc.category) || bc.category;
-                buildComponents[uiCategory] = {
+                buildComponents[bc.category] = {
                     componentId: bc.component_id,
                     buildComponentId: bc.id,
                     name: bc.component_name,
@@ -314,8 +302,7 @@
             return;
         }
         
-        const mappedCategory = categoryMap[category] || category;
-        const filtered = components.filter(c => c.category === mappedCategory);
+        const filtered = components.filter(c => c.category === category);
         
         if (filtered.length === 0) {
             dropdown.innerHTML = `<div class="dropdown-item" onmousedown="openModal('${category}')">+ Add Component</div>`;
@@ -351,10 +338,8 @@
         const dropdown = document.getElementById(`dropdown-${id}`);
         if (!dropdown) return;
 
-        const mappedCategory = categoryMap[category] || category;
-
         const filtered = components.filter(c => 
-            c.category === mappedCategory && 
+            c.category === category && 
             c.name.toLowerCase().includes(searchTerm.toLowerCase())
         );
 

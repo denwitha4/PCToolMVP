@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from database import get_db, Build, BuildComponent, Component
+from database import get_db, Build, BuildComponent, Component, BuildStatus
 from pydantic import BaseModel
 from typing import List
 
@@ -125,6 +125,18 @@ def delete_build(build_id: int, db: Session = Depends(get_db)):
     db.commit()
     return {"message": "Build deleted successfully"}
 
+# PUT Toggle Status build
+@router.put("/builds/{build_id}/status")
+def change_status(build_id: int, db: Session = Depends(get_db)):
+    build = db.query(Build).filter(Build.id == build_id).first()
+    
+    if not build:
+        raise HTTPException(status_code=404, detail="Build not found")
+    
+    build.status = BuildStatus.COMPLETED if build.status != BuildStatus.COMPLETED else BuildStatus.PLANNING
+    db.commit()
+    return {"message": "Build status changed successfully"}
+
 # PUT remove component from build (editing the build to not include the component)
 @router.put("/builds/{build_id}/components/{build_component_id}")
 def remove_component_from_build(build_id: int, build_component_id: int, db: Session = Depends(get_db)):
@@ -145,3 +157,5 @@ def remove_component_from_build(build_id: int, build_component_id: int, db: Sess
     db.delete(bc)
     db.commit()
     return {"message": "Component removed from build"}
+
+

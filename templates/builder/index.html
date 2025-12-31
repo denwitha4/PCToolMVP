@@ -87,6 +87,7 @@
                     <div class="action-buttons">
                         <button class="action-btn edit-btn" onclick="editBuild(${build.id})">Edit</button>
                         <button class="action-btn delete-btn" onclick="deleteBuild(${build.id})">Delete</button>
+                        <button class="action-btn complete-btn" onclick="toggleStatus(${build.id})">Complete</button>
                     </div>
                 </td>
             </tr>
@@ -129,6 +130,23 @@
         }
     }
 
+    async function toggleStatus(buildId) {
+        try {
+            const response = await fetch(`/api/builder/builds/${buildId}/status`, {
+                method: 'PUT'
+            });
+
+            if (response.ok) {
+                loadBuilds();
+            } else {
+                const error = await response.json();
+                alert('Error changing status: ' + (error.detail || 'Unknown error'));
+            }
+        } catch (error) {
+            console.error('Error changing status:', error);
+            alert('Error changing status');
+        }
+    }
     async function createNewBuild() {
         const name = prompt('Enter build name:');
         if (!name) return;

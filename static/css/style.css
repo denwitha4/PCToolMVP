@@ -195,6 +195,15 @@ td {
     background-color: #c0392b;
 }
 
+.complete-btn {
+    background-color: #58c040;
+    color: white;
+}
+
+.complete-btn:hover {
+    background-color: #3a8b28;
+}
+
 /* Modal for Add/Edit Component */
 .modal {
     display: none;
