@@ -12,21 +12,30 @@ async def landing_page(request: Request):
     """Landing page"""
     return templates.TemplateResponse("landing/index.html", {"request": request})
 
+@router.get("/home", response_class=HTMLResponse)
+async def sales_page(request: Request, db: Session = Depends(get_db)):
+    """Home page"""
+    return templates.TemplateResponse("home/index.html", {"request": request, "active": "home"})
+
 @router.get("/sales", response_class=HTMLResponse)
 async def sales_page(request: Request, db: Session = Depends(get_db)):
     """Sales management page"""
     return templates.TemplateResponse("sales/index.html", {"request": request, "active": "sales"})
-
 
 @router.get("/inventory", response_class=HTMLResponse)
 async def inventory_page(request: Request, db: Session = Depends(get_db)):
     """Inventory management page"""
     return templates.TemplateResponse("inventory/index.html", {"request": request, "active": "inventory"})
 
-@router.get("/dashboard", response_class=HTMLResponse)
-async def dashboard_page(request: Request, db: Session = Depends(get_db)):
-    """Dashboard page"""
-    return templates.TemplateResponse("dashboard/index.html", {"request": request, "active": "dashboard"})
+@router.get("/source", response_class=HTMLResponse)
+async def inventory_page(request: Request, db: Session = Depends(get_db)):
+    """Sourcing management page"""
+    return templates.TemplateResponse("source/index.html", {"request": request, "active": "source"})
+
+@router.get("/analytics", response_class=HTMLResponse)
+async def analytics_page(request: Request, db: Session = Depends(get_db)):
+    """Analytics page"""
+    return templates.TemplateResponse("analytics/index.html", {"request": request, "active": "analytics"})
 
 @router.get("/builder", response_class=HTMLResponse)
 async def builder_page(request: Request):

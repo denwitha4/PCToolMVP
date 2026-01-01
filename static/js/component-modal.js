@@ -4,7 +4,7 @@ function openModal(category = "") {
     document.getElementById('componentName').value = '';
     document.getElementById('componentCost').value = '';
     document.getElementById('componentMSRP').value = '';
-    const categorySelect = document.getElementById(category); // ✓ This name
+    const categorySelect = document.getElementById('componentCategory'); // ✓ This name
     console.log('Category select element:', categorySelect);
     const categoryFormGroup = document.getElementById('categoryFormGroup');
 

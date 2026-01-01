@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from database import get_db, Component, ComponentCategory
 from pydantic import BaseModel
 from typing import Optional
+from auth import get_current_user_id
 
 router = APIRouter(prefix="/api/inventory", tags=["inventory"])
 
@@ -22,9 +23,12 @@ class ComponentUpdate(BaseModel):
 
 # GET all components
 @router.get("/components")
-def get_components(db: Session = Depends(get_db)):
-    """Get all components from database"""
-    components = db.query(Component).all()
+def get_components(
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user_id)
+):
+    """Get all components from database for current user"""
+    components = db.query(Component).filter(Component.user_id == user_id).all()
     return [
         {
             "id": c.id,
@@ -38,13 +42,18 @@ def get_components(db: Session = Depends(get_db)):
 
 # POST create new component
 @router.post("/components")
-def create_component(component: ComponentCreate, db: Session = Depends(get_db)):
-    """Create a new component"""
+def create_component(
+    component: ComponentCreate,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user_id)
+):
+    """Create a new component for current user"""
     new_component = Component(
         name=component.name,
         category=component.category,
         cost_per_unit=component.cost_per_unit,
-        msrp=component.msrp
+        msrp=component.msrp,
+        user_id=user_id
     )
     db.add(new_component)
     db.commit()
@@ -64,10 +73,15 @@ def create_component(component: ComponentCreate, db: Session = Depends(get_db)):
 def update_component(
     component_id: int,
     component_update: ComponentUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user_id)
 ):
-    """Update an existing component"""
-    component = db.query(Component).filter(Component.id == component_id).first()
+    """Update an existing component for current user"""
+    component = db.query(Component).filter(
+        Component.id == component_id,
+        Component.user_id == user_id
+    ).first()
+    
     if not component:
         raise HTTPException(status_code=404, detail="Component not found")
     
@@ -94,15 +108,27 @@ def update_component(
 
 # DELETE component
 @router.delete("/components/{component_id}")
-def delete_component(component_id: int, db: Session = Depends(get_db)):
-    """Delete a component"""
-    component = db.query(Component).filter(Component.id == component_id).first()
+def delete_component(
+    component_id: int,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user_id)
+):
+    """Delete a component for current user"""
+    component = db.query(Component).filter(
+        Component.id == component_id,
+        Component.user_id == user_id
+    ).first()
+    
     if not component:
         raise HTTPException(status_code=404, detail="Component not found")
     
     # Check if component is used in any builds
     from database import BuildComponent
-    used_in_builds = db.query(BuildComponent).filter(BuildComponent.component_id == component_id).first()
+    used_in_builds = db.query(BuildComponent).filter(
+        BuildComponent.component_id == component_id,
+        BuildComponent.user_id == user_id
+    ).first()
+    
     if used_in_builds:
         raise HTTPException(status_code=400, detail="Cannot delete component that is used in builds")
     
@@ -112,12 +138,14 @@ def delete_component(component_id: int, db: Session = Depends(get_db)):
     return {"message": "Component deleted successfully", "id": component_id}
 
 
-
 # GET components in plaintext REMOVE THIS WHENEVER
 @router.get("/components/text", response_class=PlainTextResponse)
-def get_components_text(db: Session = Depends(get_db)):
-    """Get all components in plaintext format"""
-    components = db.query(Component).all()
+def get_components_text(
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user_id)
+):
+    """Get all components in plaintext format for current user"""
+    components = db.query(Component).filter(Component.user_id == user_id).all()
     if not components:
         return "No components found."
     

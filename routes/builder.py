@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from database import get_db, Build, BuildComponent, Component, BuildStatus
 from pydantic import BaseModel
 from typing import List
+from auth import get_current_user_id
 
 router = APIRouter(prefix="/api/builder", tags=["builder"])
 
@@ -25,8 +26,11 @@ class BuildComponentResponse(BaseModel):
 
 # GET all builds
 @router.get("/builds")
-def get_builds(db: Session = Depends(get_db)):
-    builds = db.query(Build).all()
+def get_builds(
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user_id)
+):
+    builds = db.query(Build).filter(Build.user_id == user_id).all()
     return [
         {
             "id": b.id,
@@ -40,21 +44,36 @@ def get_builds(db: Session = Depends(get_db)):
 
 # POST create new build
 @router.post("/builds")
-def create_build(build: BuildCreate, db: Session = Depends(get_db)):
-    new_build = Build(name=build.name, status=build.status)
+def create_build(
+    build: BuildCreate,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user_id)
+):
+    new_build = Build(
+        user_id=user_id,
+        name=build.name,
+        status=build.status
+    )
     db.add(new_build)
     db.commit()
     db.refresh(new_build)
     return {
         "id": new_build.id,
         "name": new_build.name,
-        "status": new_build.status.value
+        "status": new_build.status.value,
     }
 
 # GET single build
 @router.get("/builds/{build_id}")
-def get_build(build_id: int, db: Session = Depends(get_db)):
-    build = db.query(Build).filter(Build.id == build_id).first()
+def get_build(
+    build_id: int,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user_id)
+):
+    build = db.query(Build).filter(
+        Build.id == build_id,
+        Build.user_id == user_id
+    ).first()
     if not build:
         raise HTTPException(status_code=404, detail="Build not found")
     return {
@@ -67,8 +86,24 @@ def get_build(build_id: int, db: Session = Depends(get_db)):
 
 # GET build components
 @router.get("/builds/{build_id}/components")
-def get_build_components(build_id: int, db: Session = Depends(get_db)):
-    build_components = db.query(BuildComponent).filter(BuildComponent.build_id == build_id).all()
+def get_build_components(
+    build_id: int,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user_id)
+):
+    # First verify the build belongs to the user
+    build = db.query(Build).filter(
+        Build.id == build_id,
+        Build.user_id == user_id
+    ).first()
+    if not build:
+        raise HTTPException(status_code=404, detail="Build not found")
+    
+    build_components = db.query(BuildComponent).filter(
+        BuildComponent.build_id == build_id,
+        BuildComponent.user_id == user_id
+    ).all()
+    
     result = []
     for bc in build_components:
         result.append({
@@ -82,20 +117,32 @@ def get_build_components(build_id: int, db: Session = Depends(get_db)):
 
 # POST add component to build
 @router.post("/builds/{build_id}/components")
-def add_component_to_build(build_id: int, component_data: BuildComponentCreate, db: Session = Depends(get_db)):
-    # Check if build exists
-    build = db.query(Build).filter(Build.id == build_id).first()
+def add_component_to_build(
+    build_id: int,
+    component_data: BuildComponentCreate,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user_id)
+):
+    # Check if build exists and belongs to user
+    build = db.query(Build).filter(
+        Build.id == build_id,
+        Build.user_id == user_id
+    ).first()
     if not build:
         raise HTTPException(status_code=404, detail="Build not found")
     
-    # Check if component exists
-    component = db.query(Component).filter(Component.id == component_data.component_id).first()
+    # Check if component exists and belongs to user
+    component = db.query(Component).filter(
+        Component.id == component_data.component_id,
+        Component.user_id == user_id
+    ).first()
     if not component:
         raise HTTPException(status_code=404, detail="Component not found")
     
     # Remove any existing component of the same category for this build
     existing_component = db.query(BuildComponent).join(Component).filter(
         BuildComponent.build_id == build_id,
+        BuildComponent.user_id == user_id,
         Component.category == component.category
     ).first()
     
@@ -107,7 +154,8 @@ def add_component_to_build(build_id: int, component_data: BuildComponentCreate, 
         build_id=build_id,
         component_id=component_data.component_id,
         quantity=component_data.quantity,
-        cost_at_time=component_data.cost_at_time
+        cost_at_time=component_data.cost_at_time,
+        user_id=user_id
     )
     db.add(new_bc)
     db.commit()
@@ -116,8 +164,15 @@ def add_component_to_build(build_id: int, component_data: BuildComponentCreate, 
 
 # DELETE build
 @router.delete("/builds/{build_id}")
-def delete_build(build_id: int, db: Session = Depends(get_db)):
-    build = db.query(Build).filter(Build.id == build_id).first()
+def delete_build(
+    build_id: int,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user_id)
+):
+    build = db.query(Build).filter(
+        Build.id == build_id,
+        Build.user_id == user_id
+    ).first()
     if not build:
         raise HTTPException(status_code=404, detail="Build not found")
     
@@ -127,8 +182,15 @@ def delete_build(build_id: int, db: Session = Depends(get_db)):
 
 # PUT Toggle Status build
 @router.put("/builds/{build_id}/status")
-def change_status(build_id: int, db: Session = Depends(get_db)):
-    build = db.query(Build).filter(Build.id == build_id).first()
+def change_status(
+    build_id: int,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user_id)
+):
+    build = db.query(Build).filter(
+        Build.id == build_id,
+        Build.user_id == user_id
+    ).first()
     
     if not build:
         raise HTTPException(status_code=404, detail="Build not found")
@@ -139,16 +201,25 @@ def change_status(build_id: int, db: Session = Depends(get_db)):
 
 # PUT remove component from build (editing the build to not include the component)
 @router.put("/builds/{build_id}/components/{build_component_id}")
-def remove_component_from_build(build_id: int, build_component_id: int, db: Session = Depends(get_db)):
-    # Check if build exists
-    build = db.query(Build).filter(Build.id == build_id).first()
+def remove_component_from_build(
+    build_id: int,
+    build_component_id: int,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user_id)
+):
+    # Check if build exists and belongs to user
+    build = db.query(Build).filter(
+        Build.id == build_id,
+        Build.user_id == user_id
+    ).first()
     if not build:
         raise HTTPException(status_code=404, detail="Build not found")
     
-    # Find the build component
+    # Find the build component that belongs to this user
     bc = db.query(BuildComponent).filter(
         BuildComponent.id == build_component_id,
-        BuildComponent.build_id == build_id
+        BuildComponent.build_id == build_id,
+        BuildComponent.user_id == user_id
     ).first()
     if not bc:
         raise HTTPException(status_code=404, detail="Component not found in build")
@@ -157,5 +228,3 @@ def remove_component_from_build(build_id: int, build_component_id: int, db: Sess
     db.delete(bc)
     db.commit()
     return {"message": "Component removed from build"}
-
-

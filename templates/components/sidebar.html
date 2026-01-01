@@ -1,5 +1,9 @@
 <div class="sidebar">
     <h2>PC Inventory</h2>
+    <div class="nav-item {% if active_page == 'home' %}active{% endif %}" onclick="navigateTo('home')">
+        <span>🏠</span>
+        <span>Home</span>
+    </div>
     <div class="nav-item {% if active_page == 'sales' %}active{% endif %}" onclick="navigateTo('sales')">
         <span>📈</span>
         <span>Sales</span>
@@ -16,7 +20,7 @@
         <span>🛒</span>
         <span>Sourcing</span>
     </div>
-    <div class="nav-item {% if active_page == 'dashboard' %}active{% endif %}" onclick="navigateTo('dashboard')">
+    <div class="nav-item {% if active_page == 'analytics' %}active{% endif %}" onclick="navigateTo('analytics')">
         <span>📊</span>
         <span>Analytics</span>
     </div>
