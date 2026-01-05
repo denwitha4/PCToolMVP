@@ -3,44 +3,46 @@
 {% block title %}Inventory Management{% endblock %}
 
 {% block content %}
-<div class="header">
-    <h1>Inventory Management</h1>
-    <button class="add-button" onclick="openModal()">+ Add Component</button>
-</div>
+<div class="main-content">
+    <div class="header">
+        <h1>Inventory Management</h1>
+        <button class="add-button" onclick="openModal()">+ Add Component</button>
+    </div>
 
-<!-- Search and Filter Controls -->
-<div class="controls">
-    <input type="text" class="search-box" id="searchBox" placeholder="Search by name..." onkeyup="filterTable()">
-    <select class="filter-select" id="categoryFilter" onchange="filterTable()">
-        <option value="">All Categories</option>
-        <option value="CPU">CPU</option>
-        <option value="GPU">GPU</option>
-        <option value="Motherboard">Motherboard</option>
-        <option value="RAM">RAM</option>
-        <option value="Storage">Storage</option>
-        <option value="PSU">PSU</option>
-        <option value="Case">Case</option>
-        <option value="Cooling">Cooling</option>
-        <option value="Extras">Extras</option>
-    </select>
-</div>
+    <!-- Search and Filter Controls -->
+    <div class="controls">
+        <input type="text" class="search-box" id="searchBox" placeholder="Search by name..." onkeyup="filterTable()">
+        <select class="filter-select" id="categoryFilter" onchange="filterTable()">
+            <option value="">All Categories</option>
+            <option value="CPU">CPU</option>
+            <option value="GPU">GPU</option>
+            <option value="Motherboard">Motherboard</option>
+            <option value="RAM">RAM</option>
+            <option value="Storage">Storage</option>
+            <option value="PSU">PSU</option>
+            <option value="Case">Case</option>
+            <option value="Cooling">Cooling</option>
+            <option value="Extras">Extras</option>
+        </select>
+    </div>
 
-<!-- Inventory Table -->
-<div class="inventory-table">
-    <table>
-        <thead>
-            <tr>
-                <th>Name</th>
-                <th>Category</th>
-                <th>Cost</th>
-                <th>MSRP</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody id="inventoryTableBody">
-            <!-- Data will be loaded here -->
-        </tbody>
-    </table>
+    <!-- Inventory Table -->
+    <div class="inventory-table">
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Category</th>
+                    <th>Cost</th>
+                    <th>MSRP</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="inventoryTableBody">
+                <!-- Data will be loaded here -->
+            </tbody>
+        </table>
+    </div>
 </div>
 
 <!-- Include the modal component -->

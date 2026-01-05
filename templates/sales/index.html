@@ -1,7 +1,399 @@
 {% extends "base.html" %}
 
-{% block title %}Edit Build{% endblock %}
+{% block title %}Sales{% endblock %}
 
-{% block extra_css %}>
+{% block extra_css %}
+    <style>
+    .gpu-selector-container {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .search-group {
+        margin-bottom: 20px;
+    }
+
+    .search-group label {
+        font-weight: 600;
+        margin-bottom: 8px;
+        color: #2c3e50;
+        font-size: 1rem;
+        display: block;
+    }
+
+    .search-input-wrapper {
+        position: relative;
+    }
+
+    .gpu-search-input {
+        width: 100%;
+        padding: 14px 16px;
+        border: 2px solid #ddd;
+        border-radius: 8px;
+        font-size: 1rem;
+        transition: border-color 0.2s;
+    }
+
+    .gpu-search-input:focus {
+        outline: none;
+        border-color: #3498db;
+        box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+    }
+
+    .dropdown-results {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: white;
+        border: 2px solid #ddd;
+        border-top: none;
+        border-radius: 0 0 8px 8px;
+        max-height: 400px;
+        overflow-y: auto;
+        z-index: 1000;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        display: none;
+    }
+
+    .dropdown-results.active {
+        display: block;
+    }
+
+    .dropdown-item {
+        padding: 14px 16px;
+        cursor: pointer;
+        border-bottom: 1px solid #f0f0f0;
+        transition: background-color 0.15s;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .dropdown-item:last-child {
+        border-bottom: none;
+    }
+
+    .dropdown-item:hover {
+        background-color: #f8f9fa;
+    }
+
+    .dropdown-item.focused {
+        background-color: #e3f2fd;
+    }
+
+    .gpu-dropdown-name {
+        font-weight: 600;
+        color: #2c3e50;
+        font-size: 0.95rem;
+    }
+
+    .gpu-dropdown-specs {
+        font-size: 0.8rem;
+        color: #7f8c8d;
+        margin-top: 2px;
+    }
+
+    .gpu-dropdown-vram {
+        background: #3498db;
+        color: white;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-weight: 600;
+        font-size: 0.8rem;
+    }
+
+    .selected-gpu-display {
+        background: #e8f5e9;
+        border: 2px solid #27ae60;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+        display: none;
+    }
+
+    .selected-gpu-display.active {
+        display: block;
+    }
+
+    .selected-gpu-display h3 {
+        margin: 0 0 12px 0;
+        color: #27ae60;
+        font-size: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .selected-gpu-name {
+        font-size: 1.3rem;
+        font-weight: 700;
+        color: #2c3e50;
+        margin-bottom: 8px;
+    }
+
+    .selected-gpu-specs {
+        color: #7f8c8d;
+        font-size: 0.9rem;
+    }
+
+    .clear-selection-btn {
+        background: #e74c3c;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        margin-top: 12px;
+        transition: background 0.2s;
+    }
+
+    .clear-selection-btn:hover {
+        background: #c0392b;
+    }
+
+    .no-results {
+        padding: 20px;
+        text-align: center;
+        color: #7f8c8d;
+        font-size: 0.9rem;
+    }
+
+    .search-hint {
+        margin-top: 8px;
+        font-size: 0.85rem;
+        color: #7f8c8d;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="main-content">
+    <div class="gpu-selector-container">
+        <h1>Select GPU</h1>
+
+        <!-- Selected GPU Display -->
+        <div class="selected-gpu-display" id="selectedGpuDisplay">
+            <h3>✓ Selected GPU</h3>
+            <div class="selected-gpu-name" id="selectedGpuName"></div>
+            <div class="selected-gpu-specs" id="selectedGpuSpecs"></div>
+            <button class="clear-selection-btn" onclick="clearSelection()">Clear Selection</button>
+        </div>
+
+        <!-- Search Input -->
+        <div class="search-group">
+            <label for="gpuSearch">Search for GPU</label>
+            <div class="search-input-wrapper">
+                <input 
+                    type="text" 
+                    id="gpuSearch" 
+                    class="gpu-search-input" 
+                    placeholder="Type GPU model (e.g., RTX 5060, RX 7900, Arc 770)"
+                    autocomplete="off"
+                    oninput="searchGPUs()"
+                    onkeydown="handleKeyDown(event)"
+                    onfocus="showDropdown()"
+                >
+                <div class="dropdown-results" id="dropdownResults"></div>
+            </div>
+            <div class="search-hint">Start typing to see matching GPUs</div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let gpuData = [];
+    let selectedGPU = null;
+    let focusedIndex = -1;
+    let filteredGPUs = [];
+
+    // Load and parse CSV from file
+    async function loadGPUData() {
+        try {
+            const response = await fetch('/static/data/gpus.csv');
+            const csvText = await response.text();
+            parseCSV(csvText);
+        } catch (error) {
+            console.error('Error loading GPU data:', error);
+            document.getElementById('gpuSearch').placeholder = 'Error loading GPU data';
+        }
+    }
+
+    // Parse CSV
+    function parseCSV(csvData) {
+        const lines = csvData.trim().split('\n');
+        
+        for (let i = 1; i < lines.length; i++) {
+            const values = lines[i].split(',');
+            const variant = values[3] !== 'Base' ? values[3] : '';
+            const vram = values[4];
+            
+            // Create display name
+            let displayName = `${values[0]} ${values[1]} ${values[2]}`;
+            if (variant) {
+                displayName += ` ${variant}`;
+            }
+            displayName += ` ${vram}GB`;
+            
+            // Create search string (lowercase for matching)
+            const searchString = displayName.toLowerCase();
+            
+            gpuData.push({
+                vendor: values[0],
+                series: values[1],
+                model: values[2],
+                variant: values[3],
+                vram: vram,
+                displayName: displayName,
+                searchString: searchString
+            });
+        }
+    }
+
+    // Search GPUs
+    function searchGPUs() {
+        const searchInput = document.getElementById('gpuSearch');
+        const query = searchInput.value.toLowerCase().trim();
+        const dropdown = document.getElementById('dropdownResults');
+        
+        if (query.length === 0) {
+            dropdown.classList.remove('active');
+            return;
+        }
+        
+        // Filter GPUs based on search query
+        filteredGPUs = gpuData.filter(gpu => {
+            return gpu.searchString.includes(query);
+        });
+        
+        // Sort by relevance (starts with query first)
+        filteredGPUs.sort((a, b) => {
+            const aStarts = a.searchString.startsWith(query);
+            const bStarts = b.searchString.startsWith(query);
+            if (aStarts && !bStarts) return -1;
+            if (!aStarts && bStarts) return 1;
+            return 0;
+        });
+        
+        displayDropdown(filteredGPUs);
+        focusedIndex = -1;
+    }
+
+    // Display dropdown results
+    function displayDropdown(gpus) {
+        const dropdown = document.getElementById('dropdownResults');
+        
+        if (gpus.length === 0) {
+            dropdown.innerHTML = '<div class="no-results">No GPUs found</div>';
+            dropdown.classList.add('active');
+            return;
+        }
+        
+        dropdown.innerHTML = '';
+        gpus.forEach((gpu, index) => {
+            const item = document.createElement('div');
+            item.className = 'dropdown-item';
+            item.setAttribute('data-index', index);
+            
+            item.innerHTML = `
+                <div>
+                    <div class="gpu-dropdown-name">${gpu.displayName}</div>
+                    <div class="gpu-dropdown-specs">${gpu.vendor} • ${gpu.series}</div>
+                </div>
+                <div class="gpu-dropdown-vram">${gpu.vram}GB</div>
+            `;
+            
+            item.onclick = () => selectGPU(gpu);
+            dropdown.appendChild(item);
+        });
+        
+        dropdown.classList.add('active');
+    }
+
+    // Show dropdown
+    function showDropdown() {
+        const query = document.getElementById('gpuSearch').value;
+        if (query.length > 0) {
+            document.getElementById('dropdownResults').classList.add('active');
+        }
+    }
+
+    // Handle keyboard navigation
+    function handleKeyDown(event) {
+        const dropdown = document.getElementById('dropdownResults');
+        const items = dropdown.querySelectorAll('.dropdown-item');
+        
+        if (items.length === 0) return;
+        
+        if (event.key === 'ArrowDown') {
+            event.preventDefault();
+            focusedIndex = Math.min(focusedIndex + 1, items.length - 1);
+            updateFocusedItem(items);
+        } else if (event.key === 'ArrowUp') {
+            event.preventDefault();
+            focusedIndex = Math.max(focusedIndex - 1, -1);
+            updateFocusedItem(items);
+        } else if (event.key === 'Enter') {
+            event.preventDefault();
+            if (focusedIndex >= 0 && focusedIndex < filteredGPUs.length) {
+                selectGPU(filteredGPUs[focusedIndex]);
+            }
+        } else if (event.key === 'Escape') {
+            dropdown.classList.remove('active');
+        }
+    }
+
+    // Update focused item styling
+    function updateFocusedItem(items) {
+        items.forEach((item, index) => {
+            if (index === focusedIndex) {
+                item.classList.add('focused');
+                item.scrollIntoView({ block: 'nearest' });
+            } else {
+                item.classList.remove('focused');
+            }
+        });
+    }
+
+    // Select GPU
+    function selectGPU(gpu) {
+        selectedGPU = gpu;
+        
+        document.getElementById('selectedGpuName').textContent = gpu.displayName;
+        document.getElementById('selectedGpuSpecs').textContent = `${gpu.vendor} • ${gpu.series} Series • ${gpu.vram}GB VRAM`;
+        document.getElementById('selectedGpuDisplay').classList.add('active');
+        
+        // Clear search and hide dropdown
+        document.getElementById('gpuSearch').value = '';
+        document.getElementById('dropdownResults').classList.remove('active');
+        
+        // TODO: Send to backend or use in build
+        console.log('Selected GPU:', gpu);
+    }
+
+    // Clear selection
+    function clearSelection() {
+        selectedGPU = null;
+        document.getElementById('selectedGpuDisplay').classList.remove('active');
+        document.getElementById('gpuSearch').focus();
+    }
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(event) {
+        const searchWrapper = document.querySelector('.search-input-wrapper');
+        if (!searchWrapper.contains(event.target)) {
+            document.getElementById('dropdownResults').classList.remove('active');
+        }
+    });
+
+    // Initialize
+    loadGPUData();
+</script>
 
 {% endblock %}

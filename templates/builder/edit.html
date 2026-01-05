@@ -96,52 +96,54 @@
 {% endblock %}
 
 {% block content %}
-<div class="header">
-    <h1>Edit Build: <span id="buildName">Gaming PC</span></h1>
-    <button class="add-button" onclick="navigateTo('builder')">Back to Builds</button>
-</div>
-
-<!-- Progress Section -->
-<div class="progress-section">
-    <div class="progress-bar-container">
-        <div class="progress-bar" id="progressBar"></div>
+<div class="main-content">
+    <div class="header">
+        <h1>Edit Build: <span id="buildName">Gaming PC</span></h1>
+        <button class="add-button" onclick="navigateTo('builder')">Back to Builds</button>
     </div>
-    <p class="progress-text" id="progressText">0 of 8 components</p>
-    <p class="progress-subtext">Complete build specs help your listing stand out</p>
-</div>
 
-<!-- Component List Table -->
-<div class="component-table-wrapper">
-    <table class="component-list-table">
-        <thead>
-            <tr>
-                <th>Component</th>
-                <th>Selection</th>
-                <th>MSRP</th>
-                <th>Price</th>
-                <th></th>
-            </tr>
-        </thead>
-        <tbody id="componentTableBody">
-            <!-- Rows will be injected here -->
-        </tbody>
-    </table>
-</div>
+    <!-- Progress Section -->
+    <div class="progress-section">
+        <div class="progress-bar-container">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+        <p class="progress-text" id="progressText">0 of 8 components</p>
+        <p class="progress-subtext">Complete build specs help your listing stand out</p>
+    </div>
 
-<!-- Build Summary -->
-<div class="summary-section">
-    <h3>Build Summary</h3>
-    <div class="summary-row">
-        <span>Total Cost:</span>
-        <span id="totalCost">$0.00</span>
+    <!-- Component List Table -->
+    <div class="component-table-wrapper">
+        <table class="component-list-table">
+            <thead>
+                <tr>
+                    <th>Component</th>
+                    <th>Selection</th>
+                    <th>MSRP</th>
+                    <th>Price</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody id="componentTableBody">
+                <!-- Rows will be injected here -->
+            </tbody>
+        </table>
     </div>
-    <div class="summary-row">
-        <span>Estimated MSRP:</span>
-        <span id="totalMSRP">$0.00</span>
-    </div>
-    <div class="summary-row">
-        <span>Profit Margin:</span>
-        <span id="profitMargin">$0.00</span>
+
+    <!-- Build Summary -->
+    <div class="summary-section">
+        <h3>Build Summary</h3>
+        <div class="summary-row">
+            <span>Total Cost:</span>
+            <span id="totalCost">$0.00</span>
+        </div>
+        <div class="summary-row">
+            <span>Estimated MSRP:</span>
+            <span id="totalMSRP">$0.00</span>
+        </div>
+        <div class="summary-row">
+            <span>Profit Margin:</span>
+            <span id="profitMargin">$0.00</span>
+        </div>
     </div>
 </div>
 <!-- Include the modal component -->

@@ -36,6 +36,15 @@ def get_oauth_token():
         print(response.text)
         return None
 
+EXCLUDE_TERMS = [
+    "fan", "motherboard", "mobile", "water", "block", "desktop", "artifact", 
+    "fans", "intel", "pcb", "heatsink", "core", "only", "workstation", "bundle", 
+    "broken", "replacement", "connector", "repair", "travel", "alienware", 
+    "waterblock", "backplate", "bracket", "mount", "adapter", "cable", 
+    "riser", "extension", "parts", "bad", "laptop", "dell", "TB", "Computer", "Gaming",
+    "PC"
+]
+
 def search_items(keyword, max_results=10):
     """Search eBay for live listings with prices"""
     token = get_oauth_token()
@@ -50,9 +59,17 @@ def search_items(keyword, max_results=10):
         "Content-Type": "application/json",
         "X-EBAY-C-MARKETPLACE-ID": "EBAY_US"
     }
+
+    # Build search query with exclusions
+    search_query = keyword
     
+    for term in EXCLUDE_TERMS:
+        search_query += f" -{term}"
+    
+    print("🔎 Search Query:", search_query)
     params = {
-        "q": keyword,
+        "q": search_query,
+        "filter": "conditionIds:{1000|1500|2000|2500|3000|4000|5000|6000}",
         "limit": max_results
     }
     

@@ -3,57 +3,59 @@
 {% block title %}PC Builder{% endblock %}
 
 {% block content %}
-<div class="header">
-    <h1>PC Builder</h1>
-    <button class="add-button" onclick="createNewBuild()">+ New Build</button>
-</div>
-
-<div class="builder-grid">
-    <!-- Left Section: Builds in Progress -->
-    <div class="builder-section left-section">
-        <h2>Builds in Progress</h2>
-        <table class="builder-table">
-            <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>Status</th>
-                    <th>Total Cost</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody id="buildsTableBody">
-                <!-- Builds will be loaded here -->
-            </tbody>
-        </table>
+<div class="main-content">
+    <div class="header">
+        <h1>PC Builder</h1>
+        <button class="add-button" onclick="createNewBuild()">+ New Build</button>
     </div>
 
-    <!-- Right Section -->
-    <div class="right-section">
-        <!-- Top Right: Build Stats -->
-        <div class="right-top">
-            <h3>Build Statistics</h3>
+    <div class="builder-grid">
+        <!-- Left Section: Builds in Progress -->
+        <div class="builder-section left-section">
+            <h2>Builds in Progress</h2>
             <table class="builder-table">
-                <tbody>
+                <thead>
                     <tr>
-                        <td>Total Builds:</td>
-                        <td id="totalBuilds">0</td>
+                        <th>Name</th>
+                        <th>Status</th>
+                        <th>Total Cost</th>
+                        <th>Actions</th>
                     </tr>
-                    <tr>
-                        <td>In Progress:</td>
-                        <td id="inProgressBuilds">0</td>
-                    </tr>
-                    <tr>
-                        <td>Completed:</td>
-                        <td id="completedBuilds">0</td>
-                    </tr>
+                </thead>
+                <tbody id="buildsTableBody">
+                    <!-- Builds will be loaded here -->
                 </tbody>
             </table>
         </div>
 
-        <!-- Bottom Right: Placeholder -->
-        <div class="right-bottom">
-            <h3>Quick Actions</h3>
-            <p>Create and manage your PC builds here.</p>
+        <!-- Right Section -->
+        <div class="right-section">
+            <!-- Top Right: Build Stats -->
+            <div class="right-top">
+                <h3>Build Statistics</h3>
+                <table class="builder-table">
+                    <tbody>
+                        <tr>
+                            <td>Total Builds:</td>
+                            <td id="totalBuilds">0</td>
+                        </tr>
+                        <tr>
+                            <td>In Progress:</td>
+                            <td id="inProgressBuilds">0</td>
+                        </tr>
+                        <tr>
+                            <td>Completed:</td>
+                            <td id="completedBuilds">0</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Bottom Right: Placeholder -->
+            <div class="right-bottom">
+                <h3>Quick Actions</h3>
+                <p>Create and manage your PC builds here.</p>
+            </div>
         </div>
     </div>
 </div>
