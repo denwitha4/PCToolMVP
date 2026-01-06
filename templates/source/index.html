@@ -245,14 +245,15 @@
             const searchString = displayName.toLowerCase();
             
             gpuData.push({
+                id: values[0],
                 vendor: values[1],
                 series: values[2],
                 model: values[3],
                 variant: values[4],
                 vram: vram,
                 displayName: displayName,
+                year: values[6],
                 searchString: searchString,
-                year: values[6]
             });
         }
     }
@@ -374,12 +375,11 @@
         document.getElementById('gpuSearch').value = '';
         document.getElementById('dropdownResults').classList.remove('active');
         
-        fetch('/api/ebay/search-gpu-prices', {
+        fetch('/api/ebay/search-gpu', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({
-                gpu_name: gpu.displayName,
-                max_results: 10
+                id: gpu.id,
             })
         }).catch(error => {
             console.error('Background search error:', error);

@@ -1,4 +1,4 @@
-gpu_id,Vendor,Series,Model,Variant,VRAM_GB,Year_Released
+id,Vendor,Series,Model,Variant,VRAM_GB,Year_Released
 1,AMD,RX,580,Base,8,2017
 2,NVIDIA,GTX,1650,Base,4,2019
 3,NVIDIA,GTX,1650,Super,4,2019

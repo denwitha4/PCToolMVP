@@ -45,7 +45,7 @@ EXCLUDE_TERMS = [
     "PC"
 ]
 
-def search_items(keyword, max_results=50):
+def search_items(keyword, extra_exclusions=[], max_results=50):
     """Search eBay for live listings with prices"""
 
     if not EBAY_APP_ID or not EBAY_CERT_ID:
@@ -70,6 +70,9 @@ def search_items(keyword, max_results=50):
     search_query = keyword
     
     for term in EXCLUDE_TERMS:
+        search_query += f" -{term}"
+    
+    for term in extra_exclusions:
         search_query += f" -{term}"
     
     print("🔎 Search Query:", search_query)
