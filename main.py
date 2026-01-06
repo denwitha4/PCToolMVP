@@ -4,7 +4,7 @@ from database import init_db
 import os
 
 # Import route modules
-from routes import pages, inventory, builder
+from routes import pages, inventory, builder, ebay
 
 # Initialize FastAPI
 app = FastAPI(title="PC Inventory Tool")
@@ -21,3 +21,4 @@ init_db()
 app.include_router(pages.router)
 app.include_router(inventory.router)
 app.include_router(builder.router)
+app.include_router(ebay.router)

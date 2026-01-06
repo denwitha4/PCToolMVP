@@ -45,8 +45,14 @@ EXCLUDE_TERMS = [
     "PC"
 ]
 
-def search_items(keyword, max_results=10):
+def search_items(keyword, max_results=50):
     """Search eBay for live listings with prices"""
+
+    if not EBAY_APP_ID or not EBAY_CERT_ID:
+        print("❌ Missing credentials in .env file")
+        print("Required: EBAY_APP_ID and EBAY_CERT_ID")
+        return
+    
     token = get_oauth_token()
     
     if not token:
@@ -113,6 +119,14 @@ def search_items(keyword, max_results=10):
         seller = 'N/A'
         if 'seller' in item:
             seller = item['seller'].get('username', 'N/A')
+
+        seller_location = 'N/A'
+        if 'itemLocation' in item:
+            location = item['itemLocation']
+            # Just get the address string
+            seller_location = location.get('addressLine1', 'N/A')
+            if 'postalCode' in location:
+                seller_location += f" {location.get('postalCode')}"
         
         # Get image
         image_url = 'N/A'
@@ -129,6 +143,7 @@ def search_items(keyword, max_results=10):
             'shipping': shipping,
             'condition': condition,
             'seller': seller,
+            'seller_location': seller_location,
             'image_url': image_url,
             'url': item_url
         })
@@ -136,10 +151,7 @@ def search_items(keyword, max_results=10):
     return items
 
 def main():
-    if not EBAY_APP_ID or not EBAY_CERT_ID:
-        print("❌ Missing credentials in .env file")
-        print("Required: EBAY_APP_ID and EBAY_CERT_ID")
-        return
+    
     
     print(f"✅ App ID: {EBAY_APP_ID[:15]}...")
     print(f"✅ Cert ID: {EBAY_CERT_ID[:15]}...")
@@ -169,6 +181,7 @@ def main():
         print(f"   Shipping: {item['shipping']}")
         print(f"   Condition: {item['condition']}")
         print(f"   Seller: {item['seller']}")
+        print(f"   Seller Location: {item['seller_location']}")
         print(f"   URL: {item['url']}")
         print()
 
