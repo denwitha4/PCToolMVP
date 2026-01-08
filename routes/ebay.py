@@ -28,18 +28,27 @@ async def search_gpu_prices(request: GPUSearchRequest):
     vendor = gpu['Vendor']
     series = gpu['Series']
     model = gpu['Model']
+    vram = gpu['VRAM_GB']
     exclude_var = ["Super", "Ti", "XT", "XTX", "GRE", "D", "LE"]
     if gpu['Variant'] == 'Base': 
         variant = ''
     else: 
         variant = gpu['Variant']
         for i in variant.split(): exclude_var.remove(i)
-    vram = gpu['VRAM_GB']
     
 
     query = f"{model} {variant} {vram}GB"
     
+    print(query)
+
     results = search_items(query, extra_exclusions=exclude_var)
-    for listing in results:
-        print(listing["price"])
-    return {"results": results}
+
+    lowest_thirty = sorted(results, key=lambda x:float(x["price"]))[:3]
+
+    for listing in lowest_thirty:
+        print(listing["price"], listing["url"])
+
+
+    average_price = sum([float(item['price']) for item in results]) / len(results) if results else 0
+    print(f"Average Price: ${average_price:.2f}")
+    return {"average_price": average_price, "lowest_listings": lowest_thirty}

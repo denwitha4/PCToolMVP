@@ -42,10 +42,10 @@ EXCLUDE_TERMS = [
     "broken", "replacement", "connector", "repair", "travel", "alienware", 
     "waterblock", "backplate", "bracket", "mount", "adapter", "cable", 
     "riser", "extension", "parts", "bad", "laptop", "dell", "TB", "Computer", "Gaming",
-    "PC"
+    "PC", "Memory", "Thinkpad", "Notebook", "Flash", "AT&T"
 ]
 
-def search_items(keyword, extra_exclusions=[], max_results=50):
+def search_items(keyword, extra_exclusions=[], max_results=100):
     """Search eBay for live listings with prices"""
 
     if not EBAY_APP_ID or not EBAY_CERT_ID:
@@ -70,9 +70,11 @@ def search_items(keyword, extra_exclusions=[], max_results=50):
     search_query = keyword
     
     for term in EXCLUDE_TERMS:
+        print(term)
         search_query += f" -{term}"
     
     for term in extra_exclusions:
+        print(term)
         search_query += f" -{term}"
     
     print("🔎 Search Query:", search_query)
@@ -105,7 +107,7 @@ def search_items(keyword, extra_exclusions=[], max_results=50):
         price = 'N/A'
         if 'price' in item:
             price_info = item['price']
-            price = f"${price_info.get('value', 'N/A')} {price_info.get('currency', '')}"
+            price = price_info.get('value', 'N/A')
         
         # Get shipping
         shipping = 'N/A'
@@ -113,7 +115,7 @@ def search_items(keyword, extra_exclusions=[], max_results=50):
             shipping_info = item['shippingOptions'][0]
             if 'shippingCost' in shipping_info:
                 shipping_cost = shipping_info['shippingCost']
-                shipping = f"${shipping_cost.get('value', '0')} {shipping_cost.get('currency', '')}"
+                shipping = f"{shipping_cost.get('value', '0')} {shipping_cost.get('currency', '')}"
         
         # Get condition
         condition = item.get('condition', 'N/A')

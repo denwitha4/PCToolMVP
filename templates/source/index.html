@@ -321,7 +321,7 @@
         <div class="right-section">
             <!-- Top Right: Retailer Prices -->
             <div class="right-top retailer-section">
-                <h3>Retailer Prices</h3>
+                <h3>Average Prices</h3>
                 <div id="retailerPrices">
                     <div class="no-data">Select a component to see pricing</div>
                 </div>
@@ -329,8 +329,8 @@
 
             <!-- Bottom Right: Placeholder -->
             <div class="right-bottom">
-                <h3>Price History</h3>
-                <div class="no-data">Price tracking coming soon</div>
+                <h3>Something</h3>
+                <div class="no-data">Something coming soon</div>
             </div>
         </div>
     </div>
@@ -539,10 +539,15 @@
         if (data.lowest_listings && data.lowest_listings.length > 0) {
             data.lowest_listings.forEach(listing => {
                 html += `
-                    <div class="listing-item">
-                        <div class="listing-title" title="${listing.title}">${listing.title}</div>
-                        <div class="listing-price">${listing.price}</div>
-                    </div>
+                    <a href="${listing.url}" target="_blank" class="listing-item-link">
+                        <div class="listing-item">
+                            <img src="${listing.image_url}" alt="${listing.title}" class="listing-image">
+                            <div class="listing-info">
+                                <div class="listing-title" title="${listing.title}">${listing.title}</div>
+                                <div class="listing-price">${listing.price}</div>
+                            </div>
+                        </div>
+                    </a>
                 `;
             });
         } else {
