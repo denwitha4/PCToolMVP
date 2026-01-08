@@ -4,12 +4,40 @@
 
 {% block extra_css %}
 <style>
-    .gpu-selector-container {
-        max-width: 600px;
-        margin: 0 auto;
-        padding: 20px;
+    .sourcing-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 20px;
+        height: calc(100vh - 120px);
     }
 
+    .sourcing-section {
+        background-color: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        padding: 24px;
+        overflow-y: auto;
+    }
+
+    .left-section {
+        grid-column: 1;
+    }
+
+    .right-section {
+        display: grid;
+        grid-template-rows: 1fr 1fr;
+        gap: 20px;
+    }
+
+    .right-top, .right-bottom {
+        background-color: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        padding: 24px;
+        overflow-y: auto;
+    }
+
+    /* GPU Selector Styles */
     .search-group {
         margin-bottom: 20px;
     }
@@ -109,7 +137,7 @@
         border: 2px solid #27ae60;
         border-radius: 8px;
         padding: 20px;
-        margin-bottom: 20px;
+        margin-top: 20px;
         display: none;
     }
 
@@ -121,9 +149,6 @@
         margin: 0 0 12px 0;
         color: #27ae60;
         font-size: 1rem;
-        display: flex;
-        align-items: center;
-        gap: 8px;
     }
 
     .selected-gpu-name {
@@ -166,44 +191,150 @@
         font-size: 0.85rem;
         color: #7f8c8d;
     }
+
+    /* Retailer Prices Section */
+    .retailer-section h3 {
+        margin-top: 0;
+        margin-bottom: 16px;
+        font-size: 1.1rem;
+        color: #2c3e50;
+    }
+
+    .retailer-card {
+        background: white;
+        border: 2px solid #e0e0e0;
+        border-radius: 10px;
+        padding: 16px;
+        margin-bottom: 16px;
+    }
+
+    .retailer-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .retailer-name {
+        font-weight: 700;
+        font-size: 1.1rem;
+        color: #2c3e50;
+    }
+
+    .average-price {
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: #27ae60;
+    }
+
+    .listings-title {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #7f8c8d;
+        margin-bottom: 8px;
+    }
+
+    .listing-item {
+        padding: 8px 0;
+        border-bottom: 1px solid #f0f0f0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .listing-item:last-child {
+        border-bottom: none;
+    }
+
+    .listing-title {
+        font-size: 0.85rem;
+        color: #2c3e50;
+        max-width: 70%;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .listing-price {
+        font-weight: 600;
+        color: #3498db;
+        font-size: 0.9rem;
+    }
+
+    .no-data {
+        text-align: center;
+        color: #7f8c8d;
+        padding: 40px 20px;
+        font-size: 0.9rem;
+    }
+
+    .loading {
+        text-align: center;
+        color: #7f8c8d;
+        padding: 20px;
+    }
 </style>
 {% endblock %}
 
 {% block content %}
-
 <div class="main-content">
-    <div class="gpu-selector-container">
-        <h1>Select GPU</h1>
+    <div class="header">
+        <h1>Component Sourcing</h1>
+    </div>
 
-        <!-- Selected GPU Display -->
-        <div class="selected-gpu-display" id="selectedGpuDisplay">
-            <h3>✓ Selected GPU</h3>
-            <div class="selected-gpu-name" id="selectedGpuName"></div>
-            <div class="selected-gpu-specs" id="selectedGpuSpecs"></div>
-            <button class="clear-selection-btn" onclick="clearSelection()">Clear Selection</button>
+    <div class="sourcing-grid">
+        <!-- Left Section: GPU Selector -->
+        <div class="sourcing-section left-section">
+            <h2>Search Component</h2>
+            
+            <!-- Search Input -->
+            <div class="search-group">
+                <label for="gpuSearch">Search for GPU</label>
+                <div class="search-input-wrapper">
+                    <input 
+                        type="text" 
+                        id="gpuSearch" 
+                        class="gpu-search-input" 
+                        placeholder="Type GPU model (e.g., RTX 5060, RX 7900, Arc 770)"
+                        autocomplete="off"
+                        oninput="searchGPUs()"
+                        onkeydown="handleKeyDown(event)"
+                        onfocus="showDropdown()"
+                    >
+                    <div class="dropdown-results" id="dropdownResults"></div>
+                </div>
+                <div class="search-hint">Start typing to see matching GPUs</div>
+            </div>
+
+            <!-- Selected GPU Display -->
+            <div class="selected-gpu-display" id="selectedGpuDisplay">
+                <h3>✓ Selected Component</h3>
+                <div class="selected-gpu-name" id="selectedGpuName"></div>
+                <div class="selected-gpu-specs" id="selectedGpuSpecs"></div>
+                <button class="clear-selection-btn" onclick="clearSelection()">Clear Selection</button>
+            </div>
         </div>
 
-        <!-- Search Input -->
-        <div class="search-group">
-            <label for="gpuSearch">Search for GPU</label>
-            <div class="search-input-wrapper">
-                <input 
-                    type="text" 
-                    id="gpuSearch" 
-                    class="gpu-search-input" 
-                    placeholder="Type GPU model (e.g., RTX 5060, RX 7900, Arc 770)"
-                    autocomplete="off"
-                    oninput="searchGPUs()"
-                    onkeydown="handleKeyDown(event)"
-                    onfocus="showDropdown()"
-                >
-                <div class="dropdown-results" id="dropdownResults"></div>
+        <!-- Right Section -->
+        <div class="right-section">
+            <!-- Top Right: Retailer Prices -->
+            <div class="right-top retailer-section">
+                <h3>Retailer Prices</h3>
+                <div id="retailerPrices">
+                    <div class="no-data">Select a component to see pricing</div>
+                </div>
             </div>
-            <div class="search-hint">Start typing to see matching GPUs</div>
+
+            <!-- Bottom Right: Placeholder -->
+            <div class="right-bottom">
+                <h3>Price History</h3>
+                <div class="no-data">Price tracking coming soon</div>
+            </div>
         </div>
     </div>
 </div>
-
 {% endblock %}
 
 {% block extra_js %}
@@ -234,14 +365,12 @@
             const variant = values[4] !== 'Base' ? values[4] : '';
             const vram = values[5];
             
-            // Create display name
             let displayName = `${values[1]} ${values[2]} ${values[3]}`;
             if (variant) {
                 displayName += ` ${variant}`;
             }
             displayName += ` ${vram}GB`;
             
-            // Create search string (lowercase for matching)
             const searchString = displayName.toLowerCase();
             
             gpuData.push({
@@ -269,12 +398,8 @@
             return;
         }
         
-        // Filter GPUs based on search query
-        filteredGPUs = gpuData.filter(gpu => {
-            return gpu.searchString.includes(query);
-        });
+        filteredGPUs = gpuData.filter(gpu => gpu.searchString.includes(query));
         
-        // Sort by relevance (starts with query first)
         filteredGPUs.sort((a, b) => {
             const aStarts = a.searchString.startsWith(query);
             const bStarts = b.searchString.startsWith(query);
@@ -318,7 +443,6 @@
         dropdown.classList.add('active');
     }
 
-    // Show dropdown
     function showDropdown() {
         const query = document.getElementById('gpuSearch').value;
         if (query.length > 0) {
@@ -326,7 +450,6 @@
         }
     }
 
-    // Handle keyboard navigation
     function handleKeyDown(event) {
         const dropdown = document.getElementById('dropdownResults');
         const items = dropdown.querySelectorAll('.dropdown-item');
@@ -351,7 +474,6 @@
         }
     }
 
-    // Update focused item styling
     function updateFocusedItem(items) {
         items.forEach((item, index) => {
             if (index === focusedIndex) {
@@ -363,39 +485,81 @@
         });
     }
 
-    // Select GPU
-    function selectGPU(gpu) {
+    // Select GPU and fetch prices
+    async function selectGPU(gpu) {
         selectedGPU = gpu;
         
         document.getElementById('selectedGpuName').textContent = gpu.displayName;
         document.getElementById('selectedGpuSpecs').textContent = `${gpu.vendor} • ${gpu.series} Series • ${gpu.vram}GB VRAM`;
         document.getElementById('selectedGpuDisplay').classList.add('active');
         
-        // Clear search and hide dropdown
         document.getElementById('gpuSearch').value = '';
         document.getElementById('dropdownResults').classList.remove('active');
         
-        fetch('/api/ebay/search-gpu', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({
-                id: gpu.id,
-            })
-        }).catch(error => {
-            console.error('Background search error:', error);
-        });
+        // Show loading state
+        document.getElementById('retailerPrices').innerHTML = '<div class="loading">Loading prices...</div>';
+        
+        // Fetch prices
+        try {
+            const response = await fetch('/api/ebay/search-gpu', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ id: parseInt(gpu.id) })
+            });
             
-        console.log('Selected GPU:', gpu);
+            if (response.ok) {
+                const data = await response.json();
+                displayRetailerPrices(data);
+            } else {
+                document.getElementById('retailerPrices').innerHTML = '<div class="no-data">Error loading prices</div>';
+            }
+        } catch (error) {
+            console.error('Error fetching prices:', error);
+            document.getElementById('retailerPrices').innerHTML = '<div class="no-data">Error loading prices</div>';
+        }
     }
 
-    // Clear selection
+    function displayRetailerPrices(data) {
+        const container = document.getElementById('retailerPrices');
+        
+        if (!data.average_price) {
+            container.innerHTML = '<div class="no-data">No pricing data available</div>';
+            return;
+        }
+        
+        let html = `
+            <div class="retailer-card">
+                <div class="retailer-header">
+                    <div class="retailer-name">eBay</div>
+                    <div class="average-price">Avg: $${data.average_price.toFixed(2)}</div>
+                </div>
+                <div class="listings-title">Lowest 3 Listings:</div>
+        `;
+        
+        if (data.lowest_listings && data.lowest_listings.length > 0) {
+            data.lowest_listings.forEach(listing => {
+                html += `
+                    <div class="listing-item">
+                        <div class="listing-title" title="${listing.title}">${listing.title}</div>
+                        <div class="listing-price">${listing.price}</div>
+                    </div>
+                `;
+            });
+        } else {
+            html += '<div class="no-data">No listings found</div>';
+        }
+        
+        html += '</div>';
+        container.innerHTML = html;
+    }
+
     function clearSelection() {
         selectedGPU = null;
         document.getElementById('selectedGpuDisplay').classList.remove('active');
+        document.getElementById('retailerPrices').innerHTML = '<div class="no-data">Select a component to see pricing</div>';
         document.getElementById('gpuSearch').focus();
     }
 
-    // Close dropdown when clicking outside
     document.addEventListener('click', function(event) {
         const searchWrapper = document.querySelector('.search-input-wrapper');
         if (!searchWrapper.contains(event.target)) {
@@ -403,8 +567,6 @@
         }
     });
 
-    // Initialize
     loadGPUListData();
 </script>
-
 {% endblock %}

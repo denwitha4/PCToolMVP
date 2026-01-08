@@ -37,9 +37,9 @@ async def search_gpu_prices(request: GPUSearchRequest):
     vram = gpu['VRAM_GB']
     
 
-    query = f"{vendor} {series} {model} {variant} {vram}GB"
-    print (f"Searching eBay for: {query}")
-    print(f"With Exclusions: {exclude_var}")
-    #results = search_items(request.gpu_name, request.max_results)
-    #return {"results": results}
-    return {"message": "Functionality not implemented yet."}
+    query = f"{model} {variant} {vram}GB"
+    
+    results = search_items(query, extra_exclusions=exclude_var)
+    for listing in results:
+        print(listing["price"])
+    return {"results": results}
