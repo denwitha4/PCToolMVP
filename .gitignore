@@ -10,12 +10,6 @@ __pycache__/
 *.so
 .Python
 
-# Database
-db/
-*.db
-*.sqlite
-*.sqlite3
-
 # Virtual Environment
 venv/
 env/

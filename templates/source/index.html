@@ -200,14 +200,6 @@
         color: #2c3e50;
     }
 
-    .retailer-card {
-        background: white;
-        border: 2px solid #e0e0e0;
-        border-radius: 10px;
-        padding: 16px;
-        margin-bottom: 16px;
-    }
-
     .retailer-header {
         display: flex;
         justify-content: space-between;
@@ -236,22 +228,47 @@
         margin-bottom: 8px;
     }
 
+    .listing-item-link {
+        text-decoration: none;
+        display: block;
+    }
+
     .listing-item {
-        padding: 8px 0;
+        padding: 12px;
         border-bottom: 1px solid #f0f0f0;
         display: flex;
-        justify-content: space-between;
+        gap: 12px;
         align-items: center;
+        transition: background-color 0.2s;
+        border-radius: 8px;
+    }
+
+    .listing-item-link:hover .listing-item {
+        background-color: #f8f9fa;
     }
 
     .listing-item:last-child {
         border-bottom: none;
     }
 
+    .listing-image {
+        width: 60px;
+        height: 60px;
+        object-fit: cover;
+        border-radius: 6px;
+        border: 1px solid #e0e0e0;
+        flex-shrink: 0;
+    }
+
+    .listing-info {
+        flex: 1;
+        min-width: 0;
+    }
+
     .listing-title {
         font-size: 0.85rem;
         color: #2c3e50;
-        max-width: 70%;
+        margin-bottom: 4px;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -259,8 +276,8 @@
 
     .listing-price {
         font-weight: 600;
-        color: #3498db;
-        font-size: 0.9rem;
+        color: #27ae60;
+        font-size: 0.95rem;
     }
 
     .no-data {
@@ -274,6 +291,25 @@
         text-align: center;
         color: #7f8c8d;
         padding: 20px;
+    }
+
+    .view-sold-btn {
+        width: 100%;
+        margin-top: 16px;
+        padding: 12px;
+        background: #9b59b6;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 0.95rem;
+        font-weight: 600;
+        transition: background 0.2s;
+        display: none;
+    }
+
+    .view-sold-btn:hover {
+        background: #8e44ad;
     }
 </style>
 {% endblock %}
@@ -321,16 +357,19 @@
         <div class="right-section">
             <!-- Top Right: Retailer Prices -->
             <div class="right-top retailer-section">
-                <h3>Average Prices</h3>
+                <h3>Lowest eBay Prices</h3>
                 <div id="retailerPrices">
                     <div class="no-data">Select a component to see pricing</div>
                 </div>
+                <a id="viewSoldBtn" href="#" target="_blank" class="view-sold-btn" style="display: none; text-decoration: none; text-align: center;">
+                    View Last Sold
+                </a>
             </div>
 
             <!-- Bottom Right: Placeholder -->
             <div class="right-bottom">
-                <h3>Something</h3>
-                <div class="no-data">Something coming soon</div>
+                <h3>Price Insights</h3>
+                <div class="no-data">Additional pricing data coming soon</div>
             </div>
         </div>
     </div>
@@ -343,6 +382,7 @@
     let selectedGPU = null;
     let focusedIndex = -1;
     let filteredGPUs = [];
+    let currentSoldLink = null;
 
     // Load and parse CSV from file
     async function loadGPUListData() {
@@ -498,6 +538,7 @@
         
         // Show loading state
         document.getElementById('retailerPrices').innerHTML = '<div class="loading">Loading prices...</div>';
+        document.getElementById('viewSoldBtn').style.display = 'none';
         
         // Fetch prices
         try {
@@ -521,19 +562,20 @@
 
     function displayRetailerPrices(data) {
         const container = document.getElementById('retailerPrices');
+        const soldBtn = document.getElementById('viewSoldBtn');
         
         if (!data.average_price) {
             container.innerHTML = '<div class="no-data">No pricing data available</div>';
+            soldBtn.style.display = 'none';
             return;
         }
         
         let html = `
-            <div class="retailer-card">
-                <div class="retailer-header">
-                    <div class="retailer-name">eBay</div>
-                    <div class="average-price">Avg: $${data.average_price.toFixed(2)}</div>
-                </div>
-                <div class="listings-title">Lowest 3 Listings:</div>
+            <div class="retailer-header">
+                <div class="retailer-name">eBay</div>
+                <div class="average-price">Avg: $${data.average_price.toFixed(2)}</div>
+            </div>
+            <div class="listings-title">Lowest 3 Listings:</div>
         `;
         
         if (data.lowest_listings && data.lowest_listings.length > 0) {
@@ -554,14 +596,20 @@
             html += '<div class="no-data">No listings found</div>';
         }
         
-        html += '</div>';
         container.innerHTML = html;
+        
+        // Show button and store sold link
+        currentSoldLink = data.sold_link;    
+        soldBtn.href = data.sold_link;
+        soldBtn.style.display = 'block';
     }
 
     function clearSelection() {
         selectedGPU = null;
+        currentSoldLink = null;
         document.getElementById('selectedGpuDisplay').classList.remove('active');
         document.getElementById('retailerPrices').innerHTML = '<div class="no-data">Select a component to see pricing</div>';
+        document.getElementById('viewSoldBtn').style.display = 'none';
         document.getElementById('gpuSearch').focus();
     }
 

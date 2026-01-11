@@ -1,4 +1,3 @@
-# scraper.py - eBay Browse API scraper (for live listings with prices)
 import requests
 import base64
 import os
@@ -70,14 +69,16 @@ def search_items(keyword, extra_exclusions=[], max_results=100):
     search_query = keyword
     
     for term in EXCLUDE_TERMS:
-        print(term)
         search_query += f" -{term}"
     
     for term in extra_exclusions:
-        print(term)
         search_query += f" -{term}"
     
-    print("🔎 Search Query:", search_query)
+
+    formatted_query = search_query.replace(" ", "+")
+
+    link = EBAY_SOLD_SEARCH_URL = f"https://www.ebay.com/sch/i.html?_nkw={formatted_query}&_sacat=0&_from=R40&rt=nc&LH_Sold=1"
+    
     params = {
         "q": search_query,
         "filter": "conditionIds:{1000|1500|2000|2500|3000|4000|5000|6000}",
@@ -150,7 +151,8 @@ def search_items(keyword, extra_exclusions=[], max_results=100):
             'seller': seller,
             'seller_location': seller_location,
             'image_url': image_url,
-            'url': item_url
+            'url': item_url,
+            'sold_link': link
         })
     
     return items
@@ -158,8 +160,6 @@ def search_items(keyword, extra_exclusions=[], max_results=100):
 def main():
     
     
-    print(f"✅ App ID: {EBAY_APP_ID[:15]}...")
-    print(f"✅ Cert ID: {EBAY_CERT_ID[:15]}...")
     
     search_term = input("\nSearch term: ").strip()
     if not search_term:

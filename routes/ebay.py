@@ -38,17 +38,16 @@ async def search_gpu_prices(request: GPUSearchRequest):
     
 
     query = f"{model} {variant} {vram}GB"
-    
+
+
+
     print(query)
 
     results = search_items(query, extra_exclusions=exclude_var)
 
-    lowest_thirty = sorted(results, key=lambda x:float(x["price"]))[:3]
-
-    for listing in lowest_thirty:
-        print(listing["price"], listing["url"])
+    lowest = sorted(results, key=lambda x:float(x["price"]))[:3]
 
 
     average_price = sum([float(item['price']) for item in results]) / len(results) if results else 0
-    print(f"Average Price: ${average_price:.2f}")
-    return {"average_price": average_price, "lowest_listings": lowest_thirty}
+    print(f"Sold Link: {results[0]['sold_link']}")
+    return {"average_price": average_price, "lowest_listings": lowest, "sold_link": results[0]['sold_link']}
