@@ -1,7 +1,546 @@
 {% extends "base.html" %}
 
-{% block title %}Edit Build{% endblock %}
+{% block title %}Sales Management{% endblock %}
 
-{% block extra_css %}>
+{% block content %}
+<div class="main-content">
+    <div class="header">
+        <h1>Sales Management</h1>
+        <button class="add-button" onclick="refreshPage()">Refresh</button>
+    </div>
 
+    <div class="builder-grid">
+        <!-- Left Section: PCs to Manage -->
+        <div class="builder-section left-section">
+            <h2>PCs to Manage</h2>
+            
+            <!-- Builds to List -->
+            <div style="margin-bottom: 30px;">
+                <h3 style="margin-bottom: 10px; color: #e74c3c;">Ready to List</h3>
+                <table class="builder-table">
+                    <thead>
+                        <tr>
+                            <th>Build Name</th>
+                            <th>Total Cost</th>
+                            <th>Suggested Price</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="toListTableBody">
+                        <!-- PCs ready to list will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Builds to Build -->
+            <div>
+                <h3 style="margin-bottom: 10px; color: #f39c12;">Need to Build</h3>
+                <table class="builder-table">
+                    <thead>
+                        <tr>
+                            <th>Build Name</th>
+                            <th>Status</th>
+                            <th>Components</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="toBuildTableBody">
+                        <!-- PCs that need to be built will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Right Section -->
+        <div class="right-section">
+            <!-- Top Right: Currently Listed -->
+            <div class="right-top">
+                <h3>Currently Listed</h3>
+                <table class="builder-table">
+                    <thead>
+                        <tr>
+                            <th>Build Name</th>
+                            <th>Price</th>
+                            <th>Days Listed</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="listedTableBody">
+                        <!-- Currently listed PCs will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Bottom Right: Sold PCs -->
+            <div class="right-bottom">
+                <h3>Sold PCs</h3>
+                <table class="builder-table">
+                    <thead>
+                        <tr>
+                            <th>Build Name</th>
+                            <th>Sale Price</th>
+                            <th>Sale Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="soldTableBody">
+                        <!-- Sold PCs will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for listing a PC -->
+<div id="listModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <span class="close" onclick="closeListModal()">&times;</span>
+        <h2>List PC for Sale</h2>
+        <form id="listForm">
+            <input type="hidden" id="listBuildId">
+            <div class="form-group">
+                <label>Build Name:</label>
+                <input type="text" id="listBuildName" readonly>
+            </div>
+            <div class="form-group">
+                <label>Listing Price:</label>
+                <input type="number" id="listPrice" step="0.01" required>
+            </div>
+            <div class="form-group">
+                <label>Platform:</label>
+                <select id="listPlatform">
+                    <option value="eBay">eBay</option>
+                    <option value="Facebook Marketplace">Facebook Marketplace</option>
+                    <option value="Craigslist">Craigslist</option>
+                    <option value="OfferUp">OfferUp</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Notes:</label>
+                <textarea id="listNotes" rows="3"></textarea>
+            </div>
+            <button type="submit" class="action-btn">List PC</button>
+        </form>
+    </div>
+</div>
+
+<!-- Modal for marking as sold -->
+<div id="soldModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <span class="close" onclick="closeSoldModal()">&times;</span>
+        <h2>Mark as Sold</h2>
+        <form id="soldForm">
+            <input type="hidden" id="soldListingId">
+            <div class="form-group">
+                <label>Build Name:</label>
+                <input type="text" id="soldBuildName" readonly>
+            </div>
+            <div class="form-group">
+                <label>Final Sale Price:</label>
+                <input type="number" id="soldPrice" step="0.01" required>
+            </div>
+            <div class="form-group">
+                <label>Sale Date:</label>
+                <input type="date" id="soldDate" required>
+            </div>
+            <div class="form-group">
+                <label>Buyer Info (optional):</label>
+                <input type="text" id="soldBuyer">
+            </div>
+            <button type="submit" class="action-btn">Mark as Sold</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let readyToList = [];
+    let needToBuild = [];
+    let currentlyListed = [];
+    let soldPCs = [];
+
+    // Load all data on page load
+    async function loadAllData() {
+        try {
+            // Load builds ready to list (completed builds)
+            const buildsResponse = await fetch('/api/builder/builds');
+            const allBuilds = await buildsResponse.json();
+            readyToList = allBuilds.filter(b => b.status === 'Completed');
+            needToBuild = allBuilds.filter(b => b.status === 'In Progress' || b.status === 'Planning');
+
+            // Load currently listed PCs
+            const listedResponse = await fetch('/api/sales/listed');
+            if (listedResponse.ok) {
+                currentlyListed = await listedResponse.json();
+            }
+
+            // Load sold PCs
+            const soldResponse = await fetch('/api/sales/sold');
+            if (soldResponse.ok) {
+                soldPCs = await soldResponse.json();
+            }
+
+            renderAllTables();
+        } catch (error) {
+            console.error('Error loading data:', error);
+        }
+    }
+
+    function renderAllTables() {
+        renderToListTable();
+        renderToBuildTable();
+        renderListedTable();
+        renderSoldTable();
+    }
+
+    function renderToListTable() {
+        const tbody = document.getElementById('toListTableBody');
+        
+        if (readyToList.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #95a5a6;">No builds ready to list</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = readyToList.map(build => {
+            const suggestedPrice = build.total_cost ? (build.total_cost * 1.3).toFixed(2) : '0.00';
+            return `
+                <tr>
+                    <td>${build.name}</td>
+                    <td>$${build.total_cost ? build.total_cost.toFixed(2) : '0.00'}</td>
+                    <td>$${suggestedPrice}</td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="action-btn edit-btn" onclick="openListModal(${build.id}, '${build.name.replace(/'/g, "\\'")}', ${suggestedPrice})">List</button>
+                            <button class="action-btn" onclick="viewBuild(${build.id})">View</button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    function renderToBuildTable() {
+        const tbody = document.getElementById('toBuildTableBody');
+        
+        if (needToBuild.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #95a5a6;">No builds in progress</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = needToBuild.map(build => `
+            <tr>
+                <td>${build.name}</td>
+                <td>${build.status}</td>
+                <td>${build.component_count || 0} components</td>
+                <td>
+                    <div class="action-buttons">
+                        <button class="action-btn edit-btn" onclick="editBuild(${build.id})">Edit</button>
+                        <button class="action-btn complete-btn" onclick="markComplete(${build.id})">Complete</button>
+                    </div>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    function renderListedTable() {
+        const tbody = document.getElementById('listedTableBody');
+        
+        if (currentlyListed.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #95a5a6;">No PCs currently listed</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = currentlyListed.map(listing => {
+            const daysListed = calculateDaysListed(listing.list_date);
+            return `
+                <tr>
+                    <td>${listing.build_name}</td>
+                    <td>$${listing.price.toFixed(2)}</td>
+                    <td>${daysListed} days</td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="action-btn complete-btn" onclick="openSoldModal(${listing.id}, '${listing.build_name.replace(/'/g, "\\'")}', ${listing.price})">Sold</button>
+                            <button class="action-btn delete-btn" onclick="unlistPC(${listing.id})">Unlist</button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    function renderSoldTable() {
+        const tbody = document.getElementById('soldTableBody');
+        
+        if (soldPCs.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #95a5a6;">No sold PCs yet</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = soldPCs.map(sale => `
+            <tr>
+                <td>${sale.build_name}</td>
+                <td>$${sale.sale_price.toFixed(2)}</td>
+                <td>${new Date(sale.sale_date).toLocaleDateString()}</td>
+                <td>
+                    <div class="action-buttons">
+                        <button class="action-btn edit-btn" onclick="editSale(${sale.id})">Edit</button>
+                        <button class="action-btn delete-btn" onclick="deleteSale(${sale.id})">Delete</button>
+                    </div>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    function calculateDaysListed(listDate) {
+        const listed = new Date(listDate);
+        const today = new Date();
+        const diffTime = Math.abs(today - listed);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        return diffDays;
+    }
+
+    function openListModal(buildId, buildName, suggestedPrice) {
+        document.getElementById('listBuildId').value = buildId;
+        document.getElementById('listBuildName').value = buildName;
+        document.getElementById('listPrice').value = suggestedPrice;
+        document.getElementById('listModal').style.display = 'block';
+    }
+
+    function closeListModal() {
+        document.getElementById('listModal').style.display = 'none';
+        document.getElementById('listForm').reset();
+    }
+
+    function openSoldModal(listingId, buildName, price) {
+        document.getElementById('soldListingId').value = listingId;
+        document.getElementById('soldBuildName').value = buildName;
+        document.getElementById('soldPrice').value = price;
+        document.getElementById('soldDate').value = new Date().toISOString().split('T')[0];
+        document.getElementById('soldModal').style.display = 'block';
+    }
+
+    function closeSoldModal() {
+        document.getElementById('soldModal').style.display = 'none';
+        document.getElementById('soldForm').reset();
+    }
+
+    // Form submissions
+    document.getElementById('listForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const data = {
+            build_id: parseInt(document.getElementById('listBuildId').value),
+            price: parseFloat(document.getElementById('listPrice').value),
+            platform: document.getElementById('listPlatform').value,
+            notes: document.getElementById('listNotes').value
+        };
+
+        try {
+            const response = await fetch('/api/sales/list', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            if (response.ok) {
+                closeListModal();
+                loadAllData();
+            } else {
+                alert('Error listing PC');
+            }
+        } catch (error) {
+            console.error('Error listing PC:', error);
+            alert('Error listing PC');
+        }
+    });
+
+    document.getElementById('soldForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const listingId = parseInt(document.getElementById('soldListingId').value);
+        const data = {
+            sale_price: parseFloat(document.getElementById('soldPrice').value),
+            sale_date: document.getElementById('soldDate').value,
+            buyer_info: document.getElementById('soldBuyer').value
+        };
+
+        try {
+            const response = await fetch(`/api/sales/listed/${listingId}/sold`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            if (response.ok) {
+                closeSoldModal();
+                loadAllData();
+            } else {
+                alert('Error marking as sold');
+            }
+        } catch (error) {
+            console.error('Error marking as sold:', error);
+            alert('Error marking as sold');
+        }
+    });
+
+    async function unlistPC(listingId) {
+        if (!confirm('Are you sure you want to unlist this PC?')) return;
+
+        try {
+            const response = await fetch(`/api/sales/listed/${listingId}`, {
+                method: 'DELETE'
+            });
+
+            if (response.ok) {
+                loadAllData();
+            } else {
+                alert('Error unlisting PC');
+            }
+        } catch (error) {
+            console.error('Error unlisting PC:', error);
+            alert('Error unlisting PC');
+        }
+    }
+
+    async function deleteSale(saleId) {
+        if (!confirm('Are you sure you want to delete this sale record?')) return;
+
+        try {
+            const response = await fetch(`/api/sales/sold/${saleId}`, {
+                method: 'DELETE'
+            });
+
+            if (response.ok) {
+                loadAllData();
+            } else {
+                alert('Error deleting sale');
+            }
+        } catch (error) {
+            console.error('Error deleting sale:', error);
+            alert('Error deleting sale');
+        }
+    }
+
+    function editBuild(buildId) {
+        window.location.href = `/builder/${buildId}`;
+    }
+
+    function viewBuild(buildId) {
+        window.location.href = `/builder/${buildId}`;
+    }
+
+    async function markComplete(buildId) {
+        try {
+            const response = await fetch(`/api/builder/builds/${buildId}/status`, {
+                method: 'PUT'
+            });
+
+            if (response.ok) {
+                loadAllData();
+            } else {
+                alert('Error marking build as complete');
+            }
+        } catch (error) {
+            console.error('Error marking build as complete:', error);
+            alert('Error marking build as complete');
+        }
+    }
+
+    function editSale(saleId) {
+        // Could implement an edit modal similar to the sold modal
+        alert('Edit functionality to be implemented');
+    }
+
+    function refreshPage() {
+        loadAllData();
+    }
+
+    // Close modals when clicking outside
+    window.onclick = function(event) {
+        const listModal = document.getElementById('listModal');
+        const soldModal = document.getElementById('soldModal');
+        if (event.target == listModal) {
+            closeListModal();
+        }
+        if (event.target == soldModal) {
+            closeSoldModal();
+        }
+    }
+
+    // Load all data on page load
+    loadAllData();
+</script>
+
+<style>
+    .modal {
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.5);
+    }
+
+    .modal-content {
+        background-color: #2c3e50;
+        margin: 5% auto;
+        padding: 30px;
+        border-radius: 8px;
+        width: 90%;
+        max-width: 500px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+    }
+
+    .close {
+        color: #95a5a6;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+    }
+
+    .close:hover,
+    .close:focus {
+        color: #ecf0f1;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 5px;
+        color: #ecf0f1;
+        font-weight: 500;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #34495e;
+        border-radius: 4px;
+        background-color: #34495e;
+        color: #ecf0f1;
+        font-size: 14px;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+        outline: none;
+        border-color: #3498db;
+    }
+
+    .form-group input[readonly] {
+        background-color: #2c3e50;
+        cursor: not-allowed;
+    }
+</style>
 {% endblock %}

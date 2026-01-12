@@ -9,7 +9,7 @@ REM Activate venv
 call venv\Scripts\activate.bat
 
 REM Install dependencies if missing
-pip install sqlalchemy fastapi uvicorn jinja2 --quiet
+pip install sqlalchemy fastapi uvicorn jinja2 requests dotenv --quiet
 
 REM Run FastAPI app
 cd ..

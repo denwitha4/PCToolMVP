@@ -9,7 +9,7 @@ fi
 source venv/bin/activate
 
 # Install dependencies if missing
-pip install sqlalchemy fastapi uvicorn jinja2 --quiet
+pip install sqlalchemy fastapi uvicorn jinja2 requests dotenv --quiet
 
 # Run FastAPI app
 cd ..
