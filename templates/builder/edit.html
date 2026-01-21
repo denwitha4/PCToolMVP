@@ -187,8 +187,7 @@
 
     // Initialize
     async function init() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const buildId = urlParams.get('id') || 1;
+        const buildId = {{ build_id }};
         
         try {
             const [componentsResponse, buildResponse] = await Promise.all([
@@ -369,6 +368,7 @@
         if (!component || !currentBuild) return;
         
         try {
+            console.log(currentBuild.id)
             const response = await fetch(`/api/builder/builds/${currentBuild.id}/components`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
