@@ -40,11 +40,11 @@ class Component(Base): ## Defines a specific component
     # Relationship to builds
     build_components = relationship("BuildComponent", back_populates="component")
 
-class BuildStatus(str, enum.Enum):
-    PLANNING = "Planning"
-    IN_PROGRESS = "In Progress"
-    COMPLETED = "Completed"
-    SOLD = "Sold"
+class BuildStatus(int, enum.Enum):
+    PLANNING = 1
+    BUILT = 2
+    LISTED = 3
+    SOLD = 4
 
 class Build(Base): ## Defines a build, to be ready for parts to be imported.
     __tablename__ = "builds"

@@ -44,8 +44,8 @@
                             <td id="inProgressBuilds">0</td>
                         </tr>
                         <tr>
-                            <td>Completed:</td>
-                            <td id="completedBuilds">0</td>
+                            <td>Ready To Build:</td>
+                            <td id="readyToBuild">0</td>
                         </tr>
                     </tbody>
                 </table>
@@ -78,7 +78,7 @@
 
     function renderBuildsTable() {
         const tbody = document.getElementById('buildsTableBody');
-        const inProgressBuilds = builds.filter(b => b.status === 'In Progress' || b.status === 'Planning');
+        const inProgressBuilds = builds.filter(b => b.status === 1);
         
         tbody.innerHTML = inProgressBuilds.map(build => `
             <tr>
@@ -100,12 +100,12 @@
 
     function updateStats() {
         const totalBuilds = builds.length;
-        const inProgress = builds.filter(b => b.status === 'In Progress' || b.status === 'Planning').length;
-        const completed = builds.filter(b => b.status === 'Completed').length;
+        const inProgress = builds.filter(b => b.status === 1).length;
+        const completed = builds.filter(b => b.status === 2).length;
 
         document.getElementById('totalBuilds').textContent = totalBuilds;
         document.getElementById('inProgressBuilds').textContent = inProgress;
-        document.getElementById('completedBuilds').textContent = completed;
+        document.getElementById('readyToBuild').textContent = completed;
     }
 
     function editBuild(buildId) {
@@ -157,7 +157,7 @@
             const response = await fetch('/api/builder/builds', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: name, status: 'Planning' })
+                body: JSON.stringify({ name: name, status: 1 })
             });
             
             if (response.ok) {

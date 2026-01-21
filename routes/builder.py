@@ -10,7 +10,7 @@ router = APIRouter(prefix="/api/builder", tags=["builder"])
 # Pydantic models
 class BuildCreate(BaseModel):
     name: str
-    status: str = "Planning"
+    status: int = 1
 
 class BuildComponentCreate(BaseModel):
     component_id: int
@@ -60,8 +60,9 @@ def create_build(
     return {
         "id": new_build.id,
         "name": new_build.name,
-        "status": new_build.status.value,
+        "status": new_build.status,
     }
+    print(new_build.status.value)
 
 # GET single build
 @router.get("/builds/{build_id}")
@@ -181,9 +182,10 @@ def delete_build(
     return {"message": "Build deleted successfully"}
 
 # PUT Toggle Status build
-@router.put("/builds/{build_id}/status")
+@router.put("/builds/{build_id}/status/{status}")
 def change_status(
     build_id: int,
+    status: int,
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user_id)
 ):
@@ -194,8 +196,8 @@ def change_status(
     
     if not build:
         raise HTTPException(status_code=404, detail="Build not found")
-    
-    build.status = BuildStatus.COMPLETED if build.status != BuildStatus.COMPLETED else BuildStatus.PLANNING
+
+    build.status = BuildStatus(status)
     db.commit()
     return {"message": "Build status changed successfully"}
 
