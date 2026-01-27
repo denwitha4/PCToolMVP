@@ -89,7 +89,7 @@
                     <div class="action-buttons">
                         <button class="action-btn edit-btn" onclick="editBuild(${build.id})">Edit</button>
                         <button class="action-btn delete-btn" onclick="deleteBuild(${build.id})">Delete</button>
-                        <button class="action-btn complete-btn" onclick="toggleStatus(${build.id})">Complete</button>
+                        <button class="action-btn complete-btn" onclick="complete(${build.id})">Complete</button>
                     </div>
                 </td>
             </tr>
@@ -132,9 +132,9 @@
         }
     }
 
-    async function toggleStatus(buildId) {
+    async function complete(buildId, status) {
         try {
-            const response = await fetch(`/api/builder/builds/${buildId}/status`, {
+            const response = await fetch(`/api/builder/builds/${buildId}/status/${status}`, { <!-- REMOVE ${status} WHEN DONE -->
                 method: 'PUT'
             });
 

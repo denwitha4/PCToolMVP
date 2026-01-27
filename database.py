@@ -42,9 +42,10 @@ class Component(Base): ## Defines a specific component
 
 class BuildStatus(int, enum.Enum):
     PLANNING = 1
-    BUILT = 2
-    LISTED = 3
-    SOLD = 4
+    BUILDING = 2
+    LISTING = 3
+    SELLING = 4
+    SOLD = 5
 
 class Build(Base): ## Defines a build, to be ready for parts to be imported.
     __tablename__ = "builds"

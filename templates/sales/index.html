@@ -157,8 +157,8 @@
 
 {% block extra_js %}
 <script>
-    let readyToList = [];
     let needToBuild = [];
+    let readyToList = [];
     let currentlyListed = [];
     let soldPCs = [];
 
@@ -168,8 +168,10 @@
             // Load builds ready to list (completed builds)
             const buildsResponse = await fetch('/api/builder/builds');
             const allBuilds = await buildsResponse.json();
-            readyToList = allBuilds.filter(b => b.status === 'Completed');
-            needToBuild = allBuilds.filter(b => b.status === 'In Progress' || b.status === 'Planning');
+            needToBuild = allBuilds.filter(b => b.status === 2);
+            readyToList = allBuilds.filter(b => b.status === 3);
+            currentlyListed = allBuilds.filter(b => b.status === 4);
+            soldPCs = allBuilds.filter(b => b.status === 5);
 
             // Load currently listed PCs
             const listedResponse = await fetch('/api/sales/listed');
