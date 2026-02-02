@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 
-{% block title %}PC Builder{% endblock %}
+{% block title %}PC Planner{% endblock %}
 
 {% block content %}
 <div class="main-content">
     <div class="header">
-        <h1>PC Builder</h1>
+        <h1>PC Planner</h1>
         <button class="add-button" onclick="createNewBuild()">+ New Build</button>
     </div>
 
@@ -54,7 +54,7 @@
             <!-- Bottom Right: Placeholder -->
             <div class="right-bottom">
                 <h3>Quick Actions</h3>
-                <p>Create and manage your PC builds here.</p>
+                <p>Plan and optimize your PC builds with profit-aware insights.</p>
             </div>
         </div>
     </div>
@@ -68,7 +68,7 @@
     // Load builds on page load
     async function loadBuilds() {
         try {
-            const response = await fetch('/api/builder/builds');
+            const response = await fetch('/api/planner/builds');
             builds = await response.json();
             renderBuildsTable();
         } catch (error) {
@@ -113,10 +113,10 @@
     }
 
     async function deleteBuild(buildId) {
-        if (!confirm('Are you sure you want to delete this build? Components will remain in inventory.')) return;
+        if (!confirm('Are you sure you want to delete this build? All reservations will be released.')) return;
 
         try {
-            const response = await fetch(`/api/builder/builds/${buildId}`, {
+            const response = await fetch(`/api/planner/builds/${buildId}`, {
                 method: 'DELETE'
             });
 
@@ -132,10 +132,12 @@
         }
     }
 
-    async function complete(buildId, status) {
+    async function complete(buildId) {
         try {
-            const response = await fetch(`/api/builder/builds/${buildId}/status/${status}`, { <!-- REMOVE ${status} WHEN DONE -->
-                method: 'PUT'
+            const response = await fetch(`/api/planner/builds/${buildId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: 2 })
             });
 
             if (response.ok) {
@@ -155,10 +157,10 @@
         if (!name) return;
 
         try {
-            const response = await fetch('/api/builder/builds', {
+            const response = await fetch('/api/planner/builds', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: name, status: 1 })
+                body: JSON.stringify({ name: name })
             });
             
             if (response.ok) {

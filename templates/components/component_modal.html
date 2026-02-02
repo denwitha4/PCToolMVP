@@ -1,45 +1,259 @@
 <!-- Add/Edit Component Modal -->
 <div class="modal" id="componentModal">
-    <div class="modal-content">
+    <div class="modal-content modal-wide">
         <div class="modal-header">
             <h2 id="modalTitle">Add Component</h2>
             <button class="close-btn" onclick="closeModal()">×</button>
         </div>
-    
-        <div class="form-group" id="categoryFormGroup">
-            <label>Category</label>
-            <select id="componentCategory">
-                <option value="">Select Category</option>
-                <option value="CPU">CPU</option>
-                <option value="GPU">GPU</option>
-                <option value="Motherboard">Motherboard</option>
-                <option value="RAM">RAM</option>
-                <option value="Storage">Storage</option>
-                <option value="PSU">PSU</option>
-                <option value="Case">Case</option>
-                <option value="Cooling">Cooling</option>
-                <option value="Extras">Extras</option>
-            </select>
+
+        <div class="modal-body">
+            <!-- Product: select existing or create new -->
+            <div class="form-row">
+                <div class="form-group full-width">
+                    <label>Product *</label>
+                    <select id="productSelect">
+                        <option value="">-- Select existing product --</option>
+                        <option value="__new__">+ Create new product</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="newProductFields" class="new-product-section" style="display: none;">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Product Name *</label>
+                        <input type="text" id="productName" placeholder="e.g. RTX 3070 Ti">
+                    </div>
+                    <div class="form-group">
+                        <label>Category *</label>
+                        <select id="productCategory">
+                            <option value="">Select category</option>
+                            <option value="CPU">CPU</option>
+                            <option value="GPU">GPU</option>
+                            <option value="Motherboard">Motherboard</option>
+                            <option value="RAM">RAM</option>
+                            <option value="Storage">Storage</option>
+                            <option value="PSU">PSU</option>
+                            <option value="Case">Case</option>
+                            <option value="Cooling">Cooling</option>
+                            <option value="Extras">Extras</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>MSRP (optional)</label>
+                        <input type="number" id="productMSRP" step="0.01" placeholder="0.00">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main required fields -->
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Unit Cost (pre-tax) * ($)</label>
+                    <input type="number" id="lotUnitCost" step="0.01" placeholder="0.00" required>
+                </div>
+                <div class="form-group">
+                    <label>Quantity *</label>
+                    <input type="number" id="lotQuantity" step="1" min="1" value="1" placeholder="1" required>
+                </div>
+            </div>
+
+            <!-- Optional fields section (collapsible) -->
+            <div class="optional-section">
+                <button type="button" class="toggle-optional-btn" onclick="toggleOptionalFields()">
+                    <span id="optionalToggleIcon">▶</span> Optional Fields
+                </button>
+                <div id="optionalFields" class="optional-fields" style="display: none;">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Vendor</label>
+                            <input type="text" id="lotVendor" placeholder="e.g. Amazon, Newegg">
+                        </div>
+                        <div class="form-group">
+                            <label>Condition</label>
+                            <select id="lotCondition">
+                                <option value="new">New</option>
+                                <option value="open_box">Open Box</option>
+                                <option value="used">Used</option>
+                                <option value="refurbished">Refurbished</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Sales Tax ($)</label>
+                            <input type="number" id="lotSalesTax" step="0.01" value="0" placeholder="0.00">
+                        </div>
+                        <div class="form-group">
+                            <label>Shipping Cost ($)</label>
+                            <input type="number" id="lotShippingCost" step="0.01" value="0" placeholder="0.00">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Fees ($)</label>
+                            <input type="number" id="lotFees" step="0.01" value="0" placeholder="0.00">
+                        </div>
+                        <div class="form-group">
+                            <label>Vendor SKU</label>
+                            <input type="text" id="lotVendorSku" placeholder="Vendor's SKU/Part #">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Serial Number</label>
+                            <input type="text" id="lotSerialNumber" placeholder="Serial number">
+                        </div>
+                        <div class="form-group">
+                            <label>Storage Location</label>
+                            <input type="text" id="lotStorageLocation" placeholder="e.g. Shelf A3">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group full-width">
+                            <label>Notes</label>
+                            <textarea id="lotNotes" rows="3" placeholder="Additional notes..."></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <div class="form-group">
-            <label>Component Name</label>
-            <input type="text" id="componentName" placeholder="e.g., RTX 3070 Ti">
-        </div>
-
-        <div class="form-group">
-            <label>Cost per Unit ($)</label>
-            <input type="number" id="componentCost" step="0.01" placeholder="0.00">
-        </div>
-
-        <div class="form-group">
-            <label>MSRP ($)</label>
-            <input type="number" id="componentMSRP" step="0.01" placeholder="0.00">
-        </div>
-        
         <div class="form-actions">
-            <button class="cancel-btn" onclick="closeModal()">Cancel</button>
-            <button class="submit-btn" onclick="saveComponent()">Save</button>
+            <button type="button" class="cancel-btn" onclick="closeModal()">Cancel</button>
+            <button type="button" class="submit-btn" onclick="saveLot()">Save</button>
         </div>
     </div>
 </div>
+
+<style>
+.modal-wide .modal-content {
+    max-width: 800px !important;
+    width: 90%;
+}
+
+.modal-body {
+    padding: 0 20px 20px 20px;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.form-row .form-group {
+    margin-bottom: 0;
+}
+
+.form-row .form-group.full-width {
+    grid-column: 1 / -1;
+}
+
+.new-product-section {
+    background: #f8f9fa;
+    padding: 16px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    border: 1px solid #e9ecef;
+}
+
+.optional-section {
+    margin-top: 24px;
+    border-top: 1px solid #e9ecef;
+    padding-top: 16px;
+}
+
+.toggle-optional-btn {
+    background: none;
+    border: none;
+    color: #3498db;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 8px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: color 0.2s;
+}
+
+.toggle-optional-btn:hover {
+    color: #2980b9;
+}
+
+#optionalToggleIcon {
+    transition: transform 0.3s;
+    font-size: 12px;
+}
+
+#optionalToggleIcon.expanded {
+    transform: rotate(90deg);
+}
+
+.optional-fields {
+    margin-top: 16px;
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.form-group label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: #2c3e50;
+    font-size: 13px;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #dce0e3;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: border-color 0.2s;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+.form-group textarea {
+    resize: vertical;
+    font-family: inherit;
+}
+</style>
+
+<script>
+function toggleOptionalFields() {
+    const fields = document.getElementById('optionalFields');
+    const icon = document.getElementById('optionalToggleIcon');
+    
+    if (fields.style.display === 'none') {
+        fields.style.display = 'block';
+        icon.classList.add('expanded');
+    } else {
+        fields.style.display = 'none';
+        icon.classList.remove('expanded');
+    }
+}
+</script>

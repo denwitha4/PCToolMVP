@@ -39,7 +39,7 @@ async def analytics_page(request: Request, db: Session = Depends(get_db)):
 
 @router.get("/builder", response_class=HTMLResponse)
 async def builder_page(request: Request):
-    """PC Builder page"""
+    """PC Planner page"""
     return templates.TemplateResponse("builder/index.html", {"request": request, "active": "builder"})
 
 @router.get("/builder/{build_id}", response_class=HTMLResponse)

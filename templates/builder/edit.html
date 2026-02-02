@@ -1,7 +1,7 @@
 <!-- templates/builder/edit.html -->
 {% extends "base.html" %}
 
-{% block title %}Edit Build{% endblock %}
+{% block title %}Edit Build - PC Planner{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -99,7 +99,7 @@
 <div class="main-content">
     <div class="header">
         <h1>Edit Build: <span id="buildName">Gaming PC</span></h1>
-        <button class="add-button" onclick="navigateTo('builder')">Back to Builds</button>
+        <button class="add-button" onclick="navigateTo('builder')">Back to Planner</button>
     </div>
 
     <!-- Progress Section -->
@@ -119,8 +119,10 @@
                     <th>Component</th>
                     <th>Selection</th>
                     <th>MSRP</th>
-                    <th>Price</th>
-                    <th></th>
+                    <th>Cost</th>
+                    <th>Margin %</th>
+                    <th>Source</th>
+                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody id="componentTableBody">
@@ -141,9 +143,25 @@
             <span id="totalMSRP">$0.00</span>
         </div>
         <div class="summary-row">
-            <span>Profit Margin:</span>
-            <span id="profitMargin">$0.00</span>
+            <span>Projected Profit:</span>
+            <span id="profitMargin" style="font-weight: bold; color: #27ae60;">$0.00</span>
         </div>
+        <div class="summary-row">
+            <span>Profit Margin %:</span>
+            <span id="profitMarginPct">0%</span>
+        </div>
+        <div id="targetProfitSection" style="display: none;">
+            <hr style="margin: 10px 0; border: none; border-top: 1px solid #e0e0e0;">
+            <div class="summary-row">
+                <span>Target Profit:</span>
+                <span id="targetProfit">—</span>
+            </div>
+            <div class="summary-row">
+                <span>Target Status:</span>
+                <span id="targetStatus">—</span>
+            </div>
+        </div>
+        <button class="add-button" style="margin-top: 15px; width: 100%;" onclick="setTargetProfit()">Set Target Profit</button>
     </div>
 </div>
 <!-- Include the modal component -->
@@ -192,7 +210,7 @@
         try {
             const [componentsResponse, buildResponse] = await Promise.all([
                 fetch('/api/inventory/components'),
-                fetch(`/api/builder/builds/${buildId}`)
+                fetch(`/api/planner/builds/${buildId}`)
             ]);
             components = await componentsResponse.json();
             currentBuild = await buildResponse.json();
@@ -210,18 +228,24 @@
 
     async function loadBuildComponents() {
         try {
-            const response = await fetch(`/api/builder/builds/${currentBuild.id}/components`);
+            const response = await fetch(`/api/planner/builds/${currentBuild.id}/components-list`);
             const bcData = await response.json();
             
             buildComponents = {};
             bcData.forEach(bc => {
                 buildComponents[bc.category] = {
-                    componentId: bc.component_id,
+                    productId: bc.product_id,
+                    lotId: bc.lot_id,
                     buildComponentId: bc.id,
                     name: bc.component_name,
                     category: bc.category,
                     cost: bc.cost_at_time,
-                    msrp: bc.msrp
+                    msrp: bc.msrp,
+                    // Enhanced planner fields
+                    quantity: bc.quantity,
+                    isExternal: bc.is_external,
+                    isInventoryBacked: bc.is_inventory_backed,
+                    profitMargin: bc.profit_margin_percentage
                 };
             });
         } catch (error) {
@@ -237,6 +261,10 @@
             const id = safeId(category.name);
             
             if (isFilled) {
+                const marginColor = (selected.profitMargin || 0) >= 20 ? '#27ae60' : (selected.profitMargin || 0) >= 10 ? '#f39c12' : '#e74c3c';
+                const sourceIcon = selected.isInventoryBacked ? '📦' : '🔗';
+                const sourceText = selected.isInventoryBacked ? 'Inventory' : 'External';
+                
                 return `
                     <tr>
                         <td><a href="#" class="component-link">${category.title}</a></td>
@@ -251,11 +279,10 @@
                                 </div>
                             </div>
                         </td>
-                        <td>$${selected.msrp.toFixed(2)}</td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
+                        <td>$${selected.msrp != null ? selected.msrp.toFixed(2) : 'N/A'}</td>
                         <td>$${selected.cost.toFixed(2)}</td>
+                        <td style="color: ${marginColor}; font-weight: bold;">${(selected.profitMargin || 0).toFixed(1)}%</td>
+                        <td>${sourceIcon} ${sourceText}</td>
                         <td><button class="remove-btn" onclick="removeComponent('${category.name}')">Remove</button></td>
                     </tr>
                 `;
@@ -271,12 +298,11 @@
                                 </div>
                             </div>
                         </td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
+                        <td>—</td>
+                        <td>—</td>
+                        <td>—</td>
+                        <td>—</td>
+                        <td>—</td>
                     </tr>
                 `;
             }
@@ -303,21 +329,34 @@
             return;
         }
         
-        const filtered = components.filter(c => c.category === category);
+        const filtered = components.filter(c => c.category === category && (c.quantity_available ?? 0) > 0);
         
-        if (filtered.length === 0) {
-            dropdown.innerHTML = `<div class="dropdown-item" onmousedown="openModal('${category}')">+ Add Component</div>`;
-        } else {
-            dropdown.innerHTML = filtered.map(c => `
-                <div class="dropdown-item" onmousedown="selectComponent('${category}', ${c.id})">
-                    <div style="font-weight: 600;">${c.name}</div>
-                    <div style="display: flex; gap: 20px; font-size: 12px; color: #7f8c8d; margin-top: 4px;">
-                        <span>Cost: $${c.cost.toFixed(2)}</span>
-                        <span>MSRP: $${c.msrp.toFixed(2)}</span>
+        let dropdownHTML = '';
+        
+        if (filtered.length > 0) {
+            dropdownHTML += filtered.map(c => {
+                const msrp = c.msrp || 0;
+                const cost = c.total_landed_cost || 0;
+                const margin = msrp > 0 ? ((msrp - cost) / msrp * 100) : 0;
+                const marginColor = margin >= 20 ? '#27ae60' : margin >= 10 ? '#f39c12' : '#e74c3c';
+                
+                return `
+                    <div class="dropdown-item" onmousedown="selectComponent('${category}', ${c.id})">
+                        <div style="font-weight: 600;">${c.product_name || '—'}</div>
+                        <div style="display: flex; gap: 20px; font-size: 12px; margin-top: 4px;">
+                            <span style="color: #7f8c8d;">Cost: $${cost.toFixed(2)}</span>
+                            <span style="color: ${marginColor};">Margin: ${margin.toFixed(1)}%</span>
+                            <span style="color: #3498db;">📦 Avail: ${c.quantity_available ?? 0}</span>
+                        </div>
                     </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
+            dropdownHTML += '<hr style="margin: 0; border: none; border-top: 1px solid #e0e0e0;">';
         }
+        
+        dropdownHTML += `<div class="dropdown-item" onmousedown="openModal('${category}')" style="color: #3498db; font-weight: 600;">+ Add New Component to Inventory</div>`;
+        
+        dropdown.innerHTML = dropdownHTML;
         
         dropdown.classList.add('open');
         if (chevron) chevron.classList.add('open');
@@ -341,20 +380,21 @@
 
         const filtered = components.filter(c => 
             c.category === category && 
-            c.name.toLowerCase().includes(searchTerm.toLowerCase())
+            (c.quantity_available ?? 0) > 0 &&
+            (c.product_name || '').toLowerCase().includes(searchTerm.toLowerCase())
         );
 
         if (filtered.length === 0) {
-            dropdown.innerHTML = '<div class="dropdown-no-items">No Other Components</div>';
+            dropdown.innerHTML = '<div class="dropdown-no-items">No components with available stock</div>';
             dropdown.style.display = 'block';
             return;
         }
 
         dropdown.innerHTML = filtered.map(c => `
             <div class="dropdown-item" onmousedown="selectComponent('${category}', ${c.id})">
-                <div style="font-weight: 600;">${c.name}</div>
-                <div style="color: #27ae60; font-size: 12px;">$${c.cost.toFixed(2)}</div>
-                <div style="color: #c9c9c9; font-size: 12px;">$${c.msrp.toFixed(2)}</div>
+                <div style="font-weight: 600;">${c.product_name || '—'}</div>
+                <div style="color: #27ae60; font-size: 12px;">$${(c.total_landed_cost ?? 0).toFixed(2)}</div>
+                <div style="color: #7f8c8d; font-size: 12px;">Avail: ${c.quantity_available ?? 0}</div>
             </div>
         `).join('');
         
@@ -362,39 +402,38 @@
     }
 
     async function selectComponent(category, componentId) {
-        console.log("Loading Components.")
-        console.log(category, componentId)
         const component = components.find(c => c.id === componentId);
         if (!component || !currentBuild) return;
         
         try {
-            console.log(currentBuild.id)
-            const response = await fetch(`/api/builder/builds/${currentBuild.id}/components`, {
+            const response = await fetch(`/api/planner/builds/${currentBuild.id}/components`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ component_id: componentId, quantity: 1, cost_at_time: component.cost, })
+                body: JSON.stringify({
+                    product_id: component.product_id,
+                    lot_id: component.id,
+                    quantity: 1,
+                    cost_at_time: component.total_landed_cost ?? component.unit_cost,
+                    is_external: false
+                })
             });
             
             if (response.ok) {
-                await loadBuildComponents();
-                renderComponentCards();
-                updateProgress();
-                updateSummary();
+                await init(); // Reload full build data with metrics
+            } else {
+                const err = await response.json();
+                alert(err.detail || 'Failed to add component');
             }
         } catch (error) {
             console.error('Error adding component:', error);
         }
     }
 
-    async function loadComponents(category, componentId){
-        console.log("Loading Components.")
-        console.log(category, componentId)
+    async function loadComponents(category, componentId) {
         const response = await fetch('/api/inventory/components');
-
         if (response.ok) {
-            console.log("Response was okay, loading and updating")
             components = await response.json();
-            selectComponent(category, componentId);
+            if (componentId) selectComponent(category, componentId);
         }
     }
 
@@ -403,15 +442,12 @@
         if (!bc || !currentBuild) return;
         
         try {
-            const response = await fetch(`/api/builder/builds/${currentBuild.id}/components/${bc.buildComponentId}`, {
-                method: 'PUT'
+            const response = await fetch(`/api/planner/builds/${currentBuild.id}/components/${bc.buildComponentId}`, {
+                method: 'DELETE'
             });
             
             if (response.ok) {
-                await loadBuildComponents();
-                renderComponentCards();
-                updateProgress();
-                updateSummary();
+                await init(); // Reload full build data with metrics
             }
         } catch (error) {
             console.error('Error removing component:', error);
@@ -428,13 +464,81 @@
     }
 
     function updateSummary() {
-        const totalCost = Object.values(buildComponents).reduce((sum, c) => sum + c.cost, 0);
-        const totalMSRP = Object.values(buildComponents).reduce((sum, c) => sum + c.msrp, 0);
-        const profit = totalMSRP - totalCost;
+        if (!currentBuild) return;
+        
+        const totalCost = currentBuild.total_cost || 0;
+        const totalMSRP = currentBuild.total_msrp || 0;
+        const profit = currentBuild.projected_profit || 0;
+        const marginPct = currentBuild.projected_margin_percentage || 0;
         
         document.getElementById('totalCost').textContent = `$${totalCost.toFixed(2)}`;
         document.getElementById('totalMSRP').textContent = `$${totalMSRP.toFixed(2)}`;
         document.getElementById('profitMargin').textContent = `$${profit.toFixed(2)}`;
+        document.getElementById('profitMarginPct').textContent = `${marginPct.toFixed(1)}%`;
+        
+        // Update target profit section if set
+        if (currentBuild.target_profit_amount || currentBuild.target_profit_percentage) {
+            document.getElementById('targetProfitSection').style.display = 'block';
+            
+            let targetText = '';
+            if (currentBuild.target_profit_amount) {
+                targetText = `$${currentBuild.target_profit_amount.toFixed(2)}`;
+            } else if (currentBuild.target_profit_percentage) {
+                targetText = `${currentBuild.target_profit_percentage.toFixed(1)}%`;
+            }
+            document.getElementById('targetProfit').textContent = targetText;
+            
+            let statusText = '—';
+            let statusColor = '#7f8c8d';
+            
+            if (currentBuild.meets_target_profit === true) {
+                statusText = '✓ Meets Target';
+                statusColor = '#27ae60';
+            } else if (currentBuild.meets_target_profit === false) {
+                statusText = '✗ Below Target';
+                statusColor = '#e74c3c';
+            }
+            
+            const statusEl = document.getElementById('targetStatus');
+            statusEl.textContent = statusText;
+            statusEl.style.color = statusColor;
+            statusEl.style.fontWeight = 'bold';
+        } else {
+            document.getElementById('targetProfitSection').style.display = 'none';
+        }
+    }
+    
+    async function setTargetProfit() {
+        const choice = prompt('Enter target profit:\n\n1. Fixed amount (e.g., 500)\n2. Percentage (e.g., 30%)\n\nEnter your target:');
+        if (!choice) return;
+        
+        let targetAmount = null;
+        let targetPct = null;
+        
+        if (choice.includes('%')) {
+            targetPct = parseFloat(choice.replace('%', ''));
+        } else {
+            targetAmount = parseFloat(choice);
+        }
+        
+        try {
+            const response = await fetch(`/api/planner/builds/${currentBuild.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    target_profit_amount: targetAmount,
+                    target_profit_percentage: targetPct
+                })
+            });
+            
+            if (response.ok) {
+                await init(); // Reload full build data
+            } else {
+                alert('Error setting target profit');
+            }
+        } catch (error) {
+            console.error('Error setting target profit:', error);
+        }
     }
 
     function navigateTo(page) {

@@ -105,23 +105,13 @@
             </div>
             <div class="form-group">
                 <label>Listing Price:</label>
-                <input type="number" id="listPrice" step="0.01" required>
-            </div>
-            <div class="form-group">
-                <label>Platform:</label>
-                <select id="listPlatform">
-                    <option value="eBay">eBay</option>
-                    <option value="Facebook Marketplace">Facebook Marketplace</option>
-                    <option value="Craigslist">Craigslist</option>
-                    <option value="OfferUp">OfferUp</option>
-                    <option value="Other">Other</option>
-                </select>
+                <input type="number" id="listPrice" step=".01" required>
             </div>
             <div class="form-group">
                 <label>Notes:</label>
                 <textarea id="listNotes" rows="3"></textarea>
             </div>
-            <button type="submit" class="action-btn">List PC</button>
+            <button type="submit" class="action-btn" onclick="listBuild()">List PC</button>
         </form>
     </div>
 </div>
@@ -157,33 +147,22 @@
 
 {% block extra_js %}
 <script>
-    let needToBuild = [];
-    let readyToList = [];
-    let currentlyListed = [];
+    let buildingPcs = [];
+    let listingPcs = [];
+    let sellingPcs = [];
     let soldPCs = [];
+    let buildId = null;
 
     // Load all data on page load
     async function loadAllData() {
         try {
-            // Load builds ready to list (completed builds)
-            const buildsResponse = await fetch('/api/builder/builds');
+            // Load builds from planner API
+            const buildsResponse = await fetch('/api/planner/builds');
             const allBuilds = await buildsResponse.json();
-            needToBuild = allBuilds.filter(b => b.status === 2);
-            readyToList = allBuilds.filter(b => b.status === 3);
-            currentlyListed = allBuilds.filter(b => b.status === 4);
+            buildingPcs = allBuilds.filter(b => b.status === 2);
+            listingPcs = allBuilds.filter(b => b.status === 3);
+            sellingPcs = allBuilds.filter(b => b.status === 4);
             soldPCs = allBuilds.filter(b => b.status === 5);
-
-            // Load currently listed PCs
-            const listedResponse = await fetch('/api/sales/listed');
-            if (listedResponse.ok) {
-                currentlyListed = await listedResponse.json();
-            }
-
-            // Load sold PCs
-            const soldResponse = await fetch('/api/sales/sold');
-            if (soldResponse.ok) {
-                soldPCs = await soldResponse.json();
-            }
 
             renderAllTables();
         } catch (error) {
@@ -198,15 +177,16 @@
         renderSoldTable();
     }
 
+
     function renderToListTable() {
         const tbody = document.getElementById('toListTableBody');
         
-        if (readyToList.length === 0) {
+        if (listingPcs.length === 0) {
             tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #95a5a6;">No builds ready to list</td></tr>';
             return;
         }
 
-        tbody.innerHTML = readyToList.map(build => {
+        tbody.innerHTML = listingPcs.map(build => {
             const suggestedPrice = build.total_cost ? (build.total_cost * 1.3).toFixed(2) : '0.00';
             return `
                 <tr>
@@ -227,12 +207,12 @@
     function renderToBuildTable() {
         const tbody = document.getElementById('toBuildTableBody');
         
-        if (needToBuild.length === 0) {
+        if (buildingPcs.length === 0) {
             tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #95a5a6;">No builds in progress</td></tr>';
             return;
         }
 
-        tbody.innerHTML = needToBuild.map(build => `
+        tbody.innerHTML = buildingPcs.map(build => `
             <tr>
                 <td>${build.name}</td>
                 <td>${build.status}</td>
@@ -250,12 +230,12 @@
     function renderListedTable() {
         const tbody = document.getElementById('listedTableBody');
         
-        if (currentlyListed.length === 0) {
+        if (sellingPcs.length === 0) {
             tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #95a5a6;">No PCs currently listed</td></tr>';
             return;
         }
 
-        tbody.innerHTML = currentlyListed.map(listing => {
+        tbody.innerHTML = sellingPcs.map(listing => {
             const daysListed = calculateDaysListed(listing.list_date);
             return `
                 <tr>
@@ -316,6 +296,33 @@
         document.getElementById('listForm').reset();
     }
 
+    async function listBuild() {
+        const buildId = document.getElementById('listBuildId').value;
+        const price = parseFloat(document.getElementById('listPrice').value);
+        
+        try {
+            const response = await fetch(`/api/planner/builds/${buildId}`, {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    status: 4,  // SELLING status
+                    selling_price: price
+                })
+            });
+            
+            if (response.ok) {
+                closeListModal();
+                loadAllData();
+            } else {
+                const error = await response.json();
+                alert('Error listing PC: ' + (error.detail || 'Unknown error'));
+            }
+        } catch (error) {
+            console.error('Error listing PC:', error);
+            alert('Error listing PC');
+        }
+    }
+
     function openSoldModal(listingId, buildName, price) {
         document.getElementById('soldListingId').value = listingId;
         document.getElementById('soldBuildName').value = buildName;
@@ -328,66 +335,7 @@
         document.getElementById('soldModal').style.display = 'none';
         document.getElementById('soldForm').reset();
     }
-
-    // Form submissions
-    document.getElementById('listForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        const data = {
-            build_id: parseInt(document.getElementById('listBuildId').value),
-            price: parseFloat(document.getElementById('listPrice').value),
-            platform: document.getElementById('listPlatform').value,
-            notes: document.getElementById('listNotes').value
-        };
-
-        try {
-            const response = await fetch('/api/sales/list', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            });
-
-            if (response.ok) {
-                closeListModal();
-                loadAllData();
-            } else {
-                alert('Error listing PC');
-            }
-        } catch (error) {
-            console.error('Error listing PC:', error);
-            alert('Error listing PC');
-        }
-    });
-
-    document.getElementById('soldForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        const listingId = parseInt(document.getElementById('soldListingId').value);
-        const data = {
-            sale_price: parseFloat(document.getElementById('soldPrice').value),
-            sale_date: document.getElementById('soldDate').value,
-            buyer_info: document.getElementById('soldBuyer').value
-        };
-
-        try {
-            const response = await fetch(`/api/sales/listed/${listingId}/sold`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            });
-
-            if (response.ok) {
-                closeSoldModal();
-                loadAllData();
-            } else {
-                alert('Error marking as sold');
-            }
-        } catch (error) {
-            console.error('Error marking as sold:', error);
-            alert('Error marking as sold');
-        }
-    });
-
+    
     async function unlistPC(listingId) {
         if (!confirm('Are you sure you want to unlist this PC?')) return;
 
@@ -436,8 +384,10 @@
 
     async function markComplete(buildId) {
         try {
-            const response = await fetch(`/api/builder/builds/${buildId}/status`, {
-                method: 'PUT'
+            const response = await fetch(`/api/planner/builds/${buildId}`, {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ status: 3 })  // LISTING status
             });
 
             if (response.ok) {

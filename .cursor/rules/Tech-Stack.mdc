@@ -1,0 +1,12 @@
+---
+description: 
+alwaysApply: true
+---
+
+# Technical Stack
+
+-Python for everything
+-FastAPI for API
+-SQLAlchemy for the database
+-Jinja2Templates for the Frontend
+-Ebay API

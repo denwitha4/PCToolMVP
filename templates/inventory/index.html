@@ -6,12 +6,25 @@
 <div class="main-content">
     <div class="header">
         <h1>Inventory Management</h1>
-        <button class="add-button" onclick="openModal()">+ Add Component</button>
+        <div style="display: flex; gap: 10px;">
+            <button class="add-button" onclick="openModal()">+ Bought Component</button>
+            <button class="add-button" onclick="openBulkAdd()">+ Bulk Add</button>
+        </div>
+    </div>
+
+    <!-- Bulk actions bar (shown when selection) -->
+    <div id="bulkBar" class="bulk-bar" style="display: none;">
+        <span id="bulkCount">0</span> selected
+        <button type="button" class="action-btn edit-btn" onclick="openBulkEdit()">Bulk Edit</button>
+        <button type="button" class="action-btn" onclick="bulkMerge()">Merge</button>
+        <button type="button" class="action-btn" onclick="bulkSell()">Sell</button>
+        <button type="button" class="action-btn delete-btn" onclick="bulkSoftDelete()">Delete</button>
+        <button type="button" class="cancel-btn" onclick="clearSelection()">Clear</button>
     </div>
 
     <!-- Search and Filter Controls -->
     <div class="controls">
-        <input type="text" class="search-box" id="searchBox" placeholder="Search by name..." onkeyup="filterTable()">
+        <input type="text" class="search-box" id="searchBox" placeholder="Search by name, vendor, SKU..." onkeyup="filterTable()">
         <select class="filter-select" id="categoryFilter" onchange="filterTable()">
             <option value="">All Categories</option>
             <option value="CPU">CPU</option>
@@ -24,6 +37,14 @@
             <option value="Cooling">Cooling</option>
             <option value="Extras">Extras</option>
         </select>
+        <select class="filter-select" id="statusFilter" onchange="filterTable()">
+            <option value="">All Statuses</option>
+            <option value="in_stock">In Stock</option>
+            <option value="reserved">Reserved</option>
+            <option value="sold">Sold</option>
+            <option value="damaged">Damaged</option>
+            <option value="returned">Returned</option>
+        </select>
     </div>
 
     <!-- Inventory Table -->
@@ -31,104 +52,378 @@
         <table>
             <thead>
                 <tr>
-                    <th>Name</th>
+                    <th class="col-check"><input type="checkbox" id="selectAll" onchange="toggleSelectAll()" title="Select all"></th>
+                    <th>Product</th>
                     <th>Category</th>
-                    <th>Cost</th>
-                    <th>MSRP</th>
+                    <th>Condition</th>
+                    <th>Status</th>
+                    <th>Qty On Hand</th>
+                    <th>Qty Reserved</th>
+                    <th>Qty Available</th>
+                    <th>Unit Cost</th>
+                    <th>Extra Cost</th>
+                    <th>Total Cost</th>
+                    <th>Date Added</th>
                     <th>Actions</th>
                 </tr>
             </thead>
             <tbody id="inventoryTableBody">
-                <!-- Data will be loaded here -->
             </tbody>
         </table>
     </div>
 </div>
 
-<!-- Include the modal component -->
+<!-- Add/Edit Component Modal -->
 {% include 'components/component_modal.html' %}
+
+<!-- Bulk Edit Modal -->
+<div id="bulkEditModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Bulk Edit</h2>
+            <button class="close-btn" onclick="closeBulkEdit()">×</button>
+        </div>
+        <form id="bulkEditForm" onsubmit="submitBulkEdit(event)">
+            <div class="form-group">
+                <label>Vendor</label>
+                <input type="text" id="bulkVendor" placeholder="Leave blank to keep">
+            </div>
+            <div class="form-group">
+                <label>Unit cost</label>
+                <input type="number" id="bulkUnitCost" step="0.01" placeholder="Leave blank to keep">
+            </div>
+            <div class="form-group">
+                <label>Quantity on hand</label>
+                <input type="number" id="bulkQtyOnHand" min="0" placeholder="Leave blank to keep">
+            </div>
+            <div class="form-group">
+                <label>Sales tax</label>
+                <input type="number" id="bulkSalesTax" step="0.01" placeholder="Leave blank to keep">
+            </div>
+            <div class="form-group">
+                <label>Shipping cost</label>
+                <input type="number" id="bulkShippingCost" step="0.01" placeholder="Leave blank to keep">
+            </div>
+            <div class="form-group">
+                <label>Fees</label>
+                <input type="number" id="bulkFees" step="0.01" placeholder="Leave blank to keep">
+            </div>
+            <div class="form-group">
+                <label>Category (updates product)</label>
+                <select id="bulkCategory">
+                    <option value="">Keep current</option>
+                    <option value="CPU">CPU</option>
+                    <option value="GPU">GPU</option>
+                    <option value="Motherboard">Motherboard</option>
+                    <option value="RAM">RAM</option>
+                    <option value="Storage">Storage</option>
+                    <option value="PSU">PSU</option>
+                    <option value="Case">Case</option>
+                    <option value="Cooling">Cooling</option>
+                    <option value="Extras">Extras</option>
+                </select>
+            </div>
+            <div class="form-actions">
+                <button type="button" class="cancel-btn" onclick="closeBulkEdit()">Cancel</button>
+                <button type="submit" class="submit-btn">Apply</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Bulk Add Modal (Template) -->
+<div id="bulkAddModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Bulk Add Components</h2>
+            <button class="close-btn" onclick="closeBulkAdd()">×</button>
+        </div>
+        <p style="padding: 20px; text-align: center; color: #7f8c8d;">Bulk add functionality - to be implemented</p>
+        <div class="form-actions">
+            <button type="button" class="cancel-btn" onclick="closeBulkAdd()">Close</button>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
 <script src="/static/js/component-modal.js"></script>
 <script>
     let components = [];
-    let editingId = null;
+    let selectedIds = new Set();
 
-    // Load components from API
     async function loadComponents() {
         try {
             const response = await fetch('/api/inventory/components');
             components = await response.json();
             renderTable();
-        } catch (error) {
-            console.error('Error loading components:', error);
+            updateBulkBar();
+        } catch (err) {
+            console.error('Error loading components', err);
         }
     }
 
-    // Render table
+    function formatDate(iso) {
+        if (!iso) return '—';
+        const d = new Date(iso);
+        return d.toLocaleDateString();
+    }
+
+    function getFilteredComponents() {
+        const search = document.getElementById('searchBox').value.toLowerCase();
+        const cat = document.getElementById('categoryFilter').value;
+        const status = document.getElementById('statusFilter').value;
+        return components.filter(component => {
+            const matchSearch = !search ||
+                (component.product_name && component.product_name.toLowerCase().includes(search)) ||
+                (component.vendor && component.vendor.toLowerCase().includes(search)) ||
+                (component.internal_sku && component.internal_sku.toLowerCase().includes(search));
+            const matchCat = !cat || component.category === cat;
+            const matchStatus = !status || component.inventory_status === status;
+            return matchSearch && matchCat && matchStatus;
+        });
+    }
+
     function renderTable() {
         const tbody = document.getElementById('inventoryTableBody');
-        
-        if (components.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state"><h3>No components yet</h3><p>Click "Add Component" to get started</p></div></td></tr>';
+        const filtered = getFilteredComponents();
+        if (filtered.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="13"><div class="empty-state"><h3>No inventory components</h3><p>Click "+ Bought Component" to add stock</p></div></td></tr>';
             return;
         }
-
-        tbody.innerHTML = components.map(component => `
-            <tr>
-                <td><strong>${component.name}</strong></td>
-                <td><span class="category-badge badge-${component.category.toLowerCase()}">${component.category}</span></td>
-                <td>$${component.cost.toFixed(2)}</td>
-                <td>$${component.msrp ? component.msrp.toFixed(2) : 'N/A'}</td>
-                <td>
-                    <div class="action-buttons">
-                        <button class="action-btn edit-btn" onclick="editComponent(${component.id})">Edit</button>
-                        <button class="action-btn delete-btn" onclick="deleteComponent(${component.id})">Delete</button>
-                    </div>
-                </td>
-            </tr>
-        `).join('');
+        tbody.innerHTML = filtered.map(component => {
+            const checked = selectedIds.has(component.id) ? 'checked' : '';
+            const extraCost = (component.sales_tax ?? 0) + (component.shipping_cost ?? 0) + (component.fees ?? 0);
+            const conditionMap = {
+                'new': 'New',
+                'open_box': 'Open Box',
+                'used': 'Used',
+                'refurbished': 'Refurbished'
+            };
+            const condition = conditionMap[component.condition] || component.condition || 'New';
+            const statusMap = {
+                'in_stock': 'In Stock',
+                'reserved': 'Reserved',
+                'sold': 'Sold',
+                'damaged': 'Damaged',
+                'returned': 'Returned'
+            };
+            const status = statusMap[component.inventory_status] || component.inventory_status || 'In Stock';
+            
+            return `
+                <tr data-component-id="${component.id}">
+                    <td class="col-check"><input type="checkbox" class="component-check" value="${component.id}" onchange="updateSelection()" ${checked}></td>
+                    <td><strong>${component.product_name || '—'}</strong></td>
+                    <td><span class="category-badge badge-${(component.category || '').toLowerCase().replace(' ', '-')}">${component.category || '—'}</span></td>
+                    <td>${condition}</td>
+                    <td><span class="status-badge status-${component.inventory_status || 'in_stock'}">${status}</span></td>
+                    <td>${component.quantity_on_hand ?? '—'}</td>
+                    <td>${component.quantity_reserved ?? 0}</td>
+                    <td>${component.quantity_available ?? '—'}</td>
+                    <td>$${(component.unit_cost ?? 0).toFixed(2)}</td>
+                    <td>$${extraCost.toFixed(2)}</td>
+                    <td>$${(component.total_landed_cost ?? 0).toFixed(2)}</td>
+                    <td>${formatDate(component.created_at)}</td>
+                    <td>
+                        <div class="action-buttons">
+                            <button type="button" class="action-btn edit-btn" onclick="editComponent(${component.id})">Edit</button>
+                            <button type="button" class="action-btn" onclick="boughtMore(${component.id})">+ Bought More</button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
     }
 
-    // Filter table
     function filterTable() {
-        const searchTerm = document.getElementById('searchBox').value.toLowerCase();
-        const categoryFilter = document.getElementById('categoryFilter').value;
-
-        const filtered = components.filter(component => {
-            const matchesSearch = component.name.toLowerCase().includes(searchTerm);
-            const matchesCategory = !categoryFilter || component.category === categoryFilter;
-            return matchesSearch && matchesCategory;
-        });
-
-        const tbody = document.getElementById('inventoryTableBody');
-        tbody.innerHTML = filtered.map(component => `
-            <tr>
-                <td><strong>${component.name}</strong></td>
-                <td><span class="category-badge badge-${component.category.toLowerCase()}">${component.category}</span></td>
-                <td>$${component.cost.toFixed(2)}</td>
-                <td>$${component.msrp ? component.msrp.toFixed(2) : 'N/A'}</td>
-                <td>
-                    <div class="action-buttons">
-                        <button class="action-btn edit-btn" onclick="editComponent(${component.id})">Edit</button>
-                        <button class="action-btn delete-btn" onclick="deleteComponent(${component.id})">Delete</button>
-                    </div>
-                </td>
-            </tr>
-        `).join('');
+        renderTable();
     }
 
-    function navigateTo(page) {
-        window.location.href = `/${page}`;
+    function toggleSelectAll() {
+        const checked = document.getElementById('selectAll').checked;
+        const filtered = getFilteredComponents();
+        if (checked) {
+            filtered.forEach(c => selectedIds.add(c.id));
+        } else {
+            filtered.forEach(c => selectedIds.delete(c.id));
+        }
+        updateBulkBar();
+        renderTable();
     }
 
-    // Listen for component saved event from modal
-    window.addEventListener('componentSaved', () => {
-        loadComponents(); // Refresh the table when modal saves
-    });
+    function updateSelection() {
+        selectedIds.clear();
+        document.querySelectorAll('.component-check:checked').forEach(cb => selectedIds.add(parseInt(cb.value, 10)));
+        updateBulkBar();
+    }
 
-    // Load components on page load
+    function clearSelection() {
+        selectedIds.clear();
+        document.getElementById('selectAll').checked = false;
+        updateBulkBar();
+        renderTable();
+    }
+
+    function updateBulkBar() {
+        const bar = document.getElementById('bulkBar');
+        const countEl = document.getElementById('bulkCount');
+        if (selectedIds.size > 0) {
+            bar.style.display = 'flex';
+            countEl.textContent = selectedIds.size;
+        } else {
+            bar.style.display = 'none';
+        }
+    }
+
+    function openBulkEdit() {
+        if (selectedIds.size === 0) return;
+        document.getElementById('bulkEditModal').style.display = 'flex';
+    }
+
+    function closeBulkEdit() {
+        document.getElementById('bulkEditModal').style.display = 'none';
+    }
+
+    function openBulkAdd() {
+        document.getElementById('bulkAddModal').style.display = 'flex';
+    }
+
+    function closeBulkAdd() {
+        document.getElementById('bulkAddModal').style.display = 'none';
+    }
+
+    async function submitBulkEdit(e) {
+        e.preventDefault();
+        const updates = {};
+        const vendor = document.getElementById('bulkVendor').value.trim();
+        if (vendor) updates.vendor = vendor;
+        const unitCost = document.getElementById('bulkUnitCost').value;
+        if (unitCost !== '') updates.unit_cost = parseFloat(unitCost);
+        const qty = document.getElementById('bulkQtyOnHand').value;
+        if (qty !== '') updates.quantity_on_hand = parseInt(qty, 10);
+        const salesTax = document.getElementById('bulkSalesTax').value;
+        if (salesTax !== '') updates.sales_tax = parseFloat(salesTax);
+        const shipping = document.getElementById('bulkShippingCost').value;
+        if (shipping !== '') updates.shipping_cost = parseFloat(shipping);
+        const fees = document.getElementById('bulkFees').value;
+        if (fees !== '') updates.fees = parseFloat(fees);
+        const category = document.getElementById('bulkCategory').value;
+        if (category) updates.category = category;
+        if (Object.keys(updates).length === 0) {
+            closeBulkEdit();
+            return;
+        }
+        try {
+            const res = await fetch('/api/inventory/components/bulk-edit', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ component_ids: Array.from(selectedIds), updates }),
+            });
+            if (!res.ok) throw new Error(await res.text());
+            closeBulkEdit();
+            clearSelection();
+            loadComponents();
+        } catch (err) {
+            alert('Bulk edit failed: ' + err.message);
+        }
+    }
+
+    async function bulkMerge() {
+        if (selectedIds.size < 2) {
+            alert('Select at least 2 components to merge.');
+            return;
+        }
+        if (!confirm('Merge selected components into one? (Same product and unit cost required)')) return;
+        try {
+            const res = await fetch('/api/inventory/components/merge', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ component_ids: Array.from(selectedIds) }),
+            });
+            if (!res.ok) throw new Error(await res.json().then(d => d.detail || JSON.stringify(d)));
+            clearSelection();
+            loadComponents();
+        } catch (err) {
+            alert('Merge failed: ' + err.message);
+        }
+    }
+
+    function bulkSell() {
+        const q = prompt('Quantity to sell per selected component (same for all):');
+        if (q === null) return;
+        const qty = parseInt(q, 10);
+        if (isNaN(qty) || qty < 1) {
+            alert('Enter a positive number.');
+            return;
+        }
+        const items = Array.from(selectedIds).map(id => ({ component_id: id, quantity: qty }));
+        fetch('/api/inventory/components/sell', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ items }),
+        }).then(r => {
+            if (!r.ok) return r.json().then(d => Promise.reject(d.detail || d));
+            clearSelection();
+            loadComponents();
+        }).catch(e => alert('Sell failed: ' + (e && e.detail ? e.detail : e)));
+    }
+
+    async function bulkSoftDelete() {
+        if (selectedIds.size === 0) return;
+        if (!confirm('Soft delete selected components? They will be hidden from the list.')) return;
+        try {
+            const res = await fetch('/api/inventory/components/soft-delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ component_ids: Array.from(selectedIds) }),
+            });
+            if (!res.ok) throw new Error(await res.text());
+            clearSelection();
+            loadComponents();
+        } catch (err) {
+            alert('Delete failed: ' + err.message);
+        }
+    }
+
+    async function boughtMore(componentId) {
+        const component = components.find(c => c.id === componentId);
+        if (!component) return;
+        const q = prompt(`Add more quantity to "${component.product_name}". Current: ${component.quantity_on_hand}. Enter quantity to add:`);
+        if (q === null) return;
+        const qtyToAdd = parseInt(q, 10);
+        if (isNaN(qtyToAdd) || qtyToAdd < 1) {
+            alert('Enter a positive number.');
+            return;
+        }
+        const newQty = component.quantity_on_hand + qtyToAdd;
+        try {
+            const res = await fetch(`/api/inventory/components/${componentId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ quantity_on_hand: newQty }),
+            });
+            if (!res.ok) throw new Error(await res.json().then(d => d.detail || JSON.stringify(d)));
+            loadComponents();
+        } catch (err) {
+            alert('Failed to add quantity: ' + err.message);
+        }
+    }
+
+    window.addEventListener('componentSaved', () => loadComponents());
+
     loadComponents();
 </script>
+<style>
+.bulk-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; padding: 8px; background: #ecf0f1; border-radius: 8px; }
+.bulk-bar .action-btn, .bulk-bar .cancel-btn { padding: 6px 12px; font-size: 13px; }
+.col-check { width: 36px; }
+.status-badge { padding: 2px 8px; border-radius: 4px; font-size: 12px; white-space: nowrap; display: inline-block; }
+.status-in_stock { background: #d4edda; color: #155724; }
+.status-reserved { background: #fff3cd; color: #856404; }
+.status-sold { background: #e2e3e5; color: #383d41; }
+.status-damaged { background: #f8d7da; color: #721c24; }
+.status-returned { background: #cce5ff; color: #004085; }
+.inventory-table table { font-size: 13px; }
+.inventory-table th, .inventory-table td { padding: 8px 6px; white-space: nowrap; }
+</style>
 {% endblock %}
