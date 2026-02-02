@@ -111,7 +111,7 @@
                 <label>Notes:</label>
                 <textarea id="listNotes" rows="3"></textarea>
             </div>
-            <button type="submit" class="action-btn" onclick="listBuild()">List PC</button>
+            <button type="button" class="action-btn" onclick="listBuild()">List PC</button>
         </form>
     </div>
 </div>
@@ -121,7 +121,7 @@
     <div class="modal-content">
         <span class="close" onclick="closeSoldModal()">&times;</span>
         <h2>Mark as Sold</h2>
-        <form id="soldForm">
+        <form id="soldForm" onsubmit="markAsSold(event)">
             <input type="hidden" id="soldListingId">
             <div class="form-group">
                 <label>Build Name:</label>
@@ -236,15 +236,16 @@
         }
 
         tbody.innerHTML = sellingPcs.map(listing => {
-            const daysListed = calculateDaysListed(listing.list_date);
+            const daysListed = calculateDaysListed(listing.updated_at);
+            const price = listing.selling_price || 0;
             return `
                 <tr>
-                    <td>${listing.build_name}</td>
-                    <td>$${listing.price.toFixed(2)}</td>
+                    <td>${listing.name}</td>
+                    <td>$${price.toFixed(2)}</td>
                     <td>${daysListed} days</td>
                     <td>
                         <div class="action-buttons">
-                            <button class="action-btn complete-btn" onclick="openSoldModal(${listing.id}, '${listing.build_name.replace(/'/g, "\\'")}', ${listing.price})">Sold</button>
+                            <button class="action-btn complete-btn" onclick="openSoldModal(${listing.id}, '${listing.name.replace(/'/g, "\\'")}', ${price})">Sold</button>
                             <button class="action-btn delete-btn" onclick="unlistPC(${listing.id})">Unlist</button>
                         </div>
                     </td>
@@ -261,19 +262,23 @@
             return;
         }
 
-        tbody.innerHTML = soldPCs.map(sale => `
-            <tr>
-                <td>${sale.build_name}</td>
-                <td>$${sale.sale_price.toFixed(2)}</td>
-                <td>${new Date(sale.sale_date).toLocaleDateString()}</td>
-                <td>
-                    <div class="action-buttons">
-                        <button class="action-btn edit-btn" onclick="editSale(${sale.id})">Edit</button>
-                        <button class="action-btn delete-btn" onclick="deleteSale(${sale.id})">Delete</button>
-                    </div>
-                </td>
-            </tr>
-        `).join('');
+        tbody.innerHTML = soldPCs.map(sale => {
+            const salePrice = sale.selling_price || 0;
+            const saleDate = sale.updated_at ? new Date(sale.updated_at).toLocaleDateString() : 'N/A';
+            return `
+                <tr>
+                    <td>${sale.name}</td>
+                    <td>$${salePrice.toFixed(2)}</td>
+                    <td>${saleDate}</td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="action-btn edit-btn" onclick="editSale(${sale.id})">Edit</button>
+                            <button class="action-btn delete-btn" onclick="deleteSale(${sale.id})">Delete</button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
     }
 
     function calculateDaysListed(listDate) {
@@ -335,19 +340,53 @@
         document.getElementById('soldModal').style.display = 'none';
         document.getElementById('soldForm').reset();
     }
+
+    async function markAsSold(event) {
+        event.preventDefault();
+        
+        const buildId = document.getElementById('soldListingId').value;
+        const price = parseFloat(document.getElementById('soldPrice').value);
+        
+        try {
+            const response = await fetch(`/api/planner/builds/${buildId}`, {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    status: 5,  // SOLD status
+                    selling_price: price
+                })
+            });
+            
+            if (response.ok) {
+                closeSoldModal();
+                loadAllData();
+            } else {
+                const error = await response.json();
+                alert('Error marking PC as sold: ' + (error.detail || 'Unknown error'));
+            }
+        } catch (error) {
+            console.error('Error marking PC as sold:', error);
+            alert('Error marking PC as sold');
+        }
+    }
     
-    async function unlistPC(listingId) {
+    async function unlistPC(buildId) {
         if (!confirm('Are you sure you want to unlist this PC?')) return;
 
         try {
-            const response = await fetch(`/api/sales/listed/${listingId}`, {
-                method: 'DELETE'
+            const response = await fetch(`/api/planner/builds/${buildId}`, {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    status: 3  // Move back to LISTING status (ready to list)
+                })
             });
 
             if (response.ok) {
                 loadAllData();
             } else {
-                alert('Error unlisting PC');
+                const error = await response.json();
+                alert('Error unlisting PC: ' + (error.detail || 'Unknown error'));
             }
         } catch (error) {
             console.error('Error unlisting PC:', error);
@@ -355,22 +394,23 @@
         }
     }
 
-    async function deleteSale(saleId) {
+    async function deleteSale(buildId) {
         if (!confirm('Are you sure you want to delete this sale record?')) return;
 
         try {
-            const response = await fetch(`/api/sales/sold/${saleId}`, {
+            const response = await fetch(`/api/planner/builds/${buildId}`, {
                 method: 'DELETE'
             });
 
             if (response.ok) {
                 loadAllData();
             } else {
-                alert('Error deleting sale');
+                const error = await response.json();
+                alert('Error deleting build: ' + (error.detail || 'Unknown error'));
             }
         } catch (error) {
-            console.error('Error deleting sale:', error);
-            alert('Error deleting sale');
+            console.error('Error deleting build:', error);
+            alert('Error deleting build');
         }
     }
 

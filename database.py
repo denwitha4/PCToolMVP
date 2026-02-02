@@ -28,6 +28,7 @@ def init_db():
     Base.metadata.create_all(bind=engine)
     _migrate_components_to_products()
     _migrate_planner_fields()
+    _migrate_bundle_fields()
 
 
 def get_db():
@@ -123,6 +124,9 @@ class InventoryLot(Base):
     storage_location = Column(String, nullable=True)
     notes = Column(Text, nullable=True)
     soft_delete = Column(Boolean, default=False)
+    bundle_id = Column(Integer, ForeignKey("bundles.id"), nullable=True)
+    allocation_weight = Column(Float, nullable=True)
+    allocation_locked = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
 
@@ -130,6 +134,7 @@ class InventoryLot(Base):
     movements = relationship("InventoryMovement", back_populates="inventory_lot", order_by="InventoryMovement.timestamp")
     build = relationship("Build", back_populates="reserved_lots")
     build_components = relationship("BuildComponent", back_populates="lot")
+    bundle = relationship("Bundle", back_populates="lots")
 
     @property
     def quantity_available(self):
@@ -155,6 +160,21 @@ class InventoryMovement(Base):
     timestamp = Column(DateTime, default=datetime.datetime.utcnow)
 
     inventory_lot = relationship("InventoryLot", back_populates="movements")
+
+
+class Bundle(Base):
+    """Bundle acquisition record: tracks multi-component purchases."""
+    __tablename__ = "bundles"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, nullable=False)
+    total_price = Column(Float, nullable=False)
+    vendor = Column(String, nullable=False)
+    purchase_date = Column(DateTime, nullable=False)
+    notes = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+    lots = relationship("InventoryLot", back_populates="bundle")
 
 
 class Build(Base):
@@ -427,5 +447,23 @@ def _migrate_planner_fields():
             conn.execute(text("ALTER TABLE build_components ADD COLUMN quantity_external INTEGER DEFAULT 0"))
         if "external_cost" not in bc_columns:
             conn.execute(text("ALTER TABLE build_components ADD COLUMN external_cost REAL"))
+        
+        conn.commit()
+
+
+def _migrate_bundle_fields():
+    """Add bundle-related fields to inventory_lots table."""
+    with engine.connect() as conn:
+        insp = inspect(engine)
+        
+        # Add fields to inventory_lots table
+        lot_columns = [c["name"] for c in insp.get_columns("inventory_lots")]
+        
+        if "bundle_id" not in lot_columns:
+            conn.execute(text("ALTER TABLE inventory_lots ADD COLUMN bundle_id INTEGER"))
+        if "allocation_weight" not in lot_columns:
+            conn.execute(text("ALTER TABLE inventory_lots ADD COLUMN allocation_weight REAL"))
+        if "allocation_locked" not in lot_columns:
+            conn.execute(text("ALTER TABLE inventory_lots ADD COLUMN allocation_locked BOOLEAN DEFAULT 0"))
         
         conn.commit()

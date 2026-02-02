@@ -5,6 +5,7 @@ from database import (
     Product,
     InventoryLot,
     InventoryMovement,
+    Bundle,
     ProductCategory,
     InventoryStatus,
     LotCondition,
@@ -13,6 +14,7 @@ from database import (
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
 from auth import get_current_user_id
+import datetime
 
 router = APIRouter(prefix="/api/inventory", tags=["inventory"])
 
@@ -142,6 +144,28 @@ class SellBody(BaseModel):
 
 class SoftDeleteBody(BaseModel):
     component_ids: List[int]
+
+
+class BundleComponentItem(BaseModel):
+    product_id: Optional[int] = None
+    product_name: Optional[str] = None
+    category: ProductCategory
+    quantity: int = 1
+    allocation_weight: float
+    allocated_cost: float
+    is_locked: bool = False
+    condition: LotCondition = LotCondition.NEW
+    vendor_sku: Optional[str] = None
+    serial_number: Optional[str] = None
+    notes: Optional[str] = None
+
+
+class BundleCreate(BaseModel):
+    total_price: float
+    vendor: str
+    purchase_date: datetime.datetime
+    notes: Optional[str] = None
+    components: List[BundleComponentItem]
 
 
 # --- Products ---
@@ -620,3 +644,179 @@ def list_component_movements(
         }
         for m in movements
     ]
+
+
+# --- Bundles ---
+
+@router.get("/bundles/presets")
+def get_bundle_presets(
+    user_id: int = Depends(get_current_user_id),
+):
+    """Return available bundle allocation presets."""
+    from config.bundle_presets import BUNDLE_PRESETS
+    return BUNDLE_PRESETS
+
+
+@router.post("/bundles")
+def create_bundle(
+    body: BundleCreate,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user_id),
+):
+    """Create a bundle acquisition and associated inventory lots."""
+    # Validation: ensure total allocated matches bundle price
+    total_allocated = sum(item.allocated_cost * item.quantity for item in body.components)
+    if abs(total_allocated - body.total_price) > 0.01:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Total allocated cost (${total_allocated:.2f}) must equal bundle price (${body.total_price:.2f})"
+        )
+    
+    # Validation: ensure all components have valid data
+    for idx, item in enumerate(body.components):
+        if not item.product_id and not item.product_name:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Component {idx + 1}: must have either product_id or product_name"
+            )
+        if item.quantity < 1:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Component {idx + 1}: quantity must be at least 1"
+            )
+        if item.allocated_cost < 0:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Component {idx + 1}: allocated cost cannot be negative"
+            )
+    
+    # Create bundle record
+    bundle = Bundle(
+        user_id=user_id,
+        total_price=body.total_price,
+        vendor=body.vendor,
+        purchase_date=body.purchase_date,
+        notes=body.notes,
+    )
+    db.add(bundle)
+    db.flush()
+    
+    # Create inventory lots for each component
+    created_lots = []
+    for item in body.components:
+        # Create product if manual entry
+        if not item.product_id:
+            product = Product(
+                name=item.product_name,
+                category=item.category,
+            )
+            db.add(product)
+            db.flush()
+            product_id = product.id
+        else:
+            product_id = item.product_id
+            # Verify product exists
+            product = db.query(Product).filter(Product.id == product_id).first()
+            if not product:
+                raise HTTPException(status_code=404, detail=f"Product {product_id} not found")
+        
+        # Create inventory lot
+        lot = InventoryLot(
+            user_id=user_id,
+            product_id=product_id,
+            bundle_id=bundle.id,
+            internal_sku=_next_internal_sku(db, user_id),
+            vendor=body.vendor,
+            vendor_sku=item.vendor_sku,
+            condition=item.condition,
+            unit_cost=item.allocated_cost,
+            sales_tax=0.0,
+            shipping_cost=0.0,
+            fees=0.0,
+            quantity_on_hand=item.quantity,
+            quantity_reserved=0,
+            inventory_status=InventoryStatus.IN_STOCK,
+            allocation_weight=item.allocation_weight,
+            allocation_locked=item.is_locked,
+            serial_number=item.serial_number,
+            notes=item.notes,
+        )
+        db.add(lot)
+        db.flush()
+        _log_movement(db, lot.id, MovementType.ADD, item.quantity)
+        created_lots.append(lot.id)
+    
+    db.commit()
+    return {
+        "bundle_id": bundle.id,
+        "lot_ids": created_lots,
+        "message": "Bundle created successfully"
+    }
+
+
+@router.get("/bundles")
+def list_bundles(
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user_id),
+):
+    """List all bundles for the current user."""
+    bundles = (
+        db.query(Bundle)
+        .filter(Bundle.user_id == user_id)
+        .order_by(Bundle.created_at.desc())
+        .all()
+    )
+    return [
+        {
+            "id": b.id,
+            "total_price": b.total_price,
+            "vendor": b.vendor,
+            "purchase_date": b.purchase_date.isoformat() if b.purchase_date else None,
+            "notes": b.notes,
+            "created_at": b.created_at.isoformat() if b.created_at else None,
+            "component_count": len(b.lots),
+        }
+        for b in bundles
+    ]
+
+
+@router.get("/bundles/{bundle_id}")
+def get_bundle(
+    bundle_id: int,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user_id),
+):
+    """Get bundle details with all associated components."""
+    bundle = db.query(Bundle).filter(
+        Bundle.id == bundle_id,
+        Bundle.user_id == user_id,
+    ).first()
+    if not bundle:
+        raise HTTPException(status_code=404, detail="Bundle not found")
+    
+    components = []
+    for lot in bundle.lots:
+        components.append({
+            "lot_id": lot.id,
+            "product_id": lot.product_id,
+            "product_name": lot.product.name if lot.product else None,
+            "category": lot.product.category.value if lot.product else None,
+            "quantity": lot.quantity_on_hand,
+            "allocated_cost": lot.unit_cost,
+            "allocation_weight": lot.allocation_weight,
+            "allocation_locked": lot.allocation_locked,
+            "condition": lot.condition.value if lot.condition else None,
+            "vendor_sku": lot.vendor_sku,
+            "serial_number": lot.serial_number,
+            "notes": lot.notes,
+        })
+    
+    return {
+        "id": bundle.id,
+        "total_price": bundle.total_price,
+        "vendor": bundle.vendor,
+        "purchase_date": bundle.purchase_date.isoformat() if bundle.purchase_date else None,
+        "notes": bundle.notes,
+        "created_at": bundle.created_at.isoformat() if bundle.created_at else None,
+        "components": components,
+    }
