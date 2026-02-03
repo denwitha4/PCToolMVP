@@ -12,6 +12,7 @@ function openModal(category) {
     document.getElementById('productMSRP').value = '';
     document.getElementById('lotVendor').value = '';
     document.getElementById('lotUnitCost').value = '';
+    document.getElementById('lotTotalCost').value = '';
     document.getElementById('lotQuantity').value = '1';
     document.getElementById('lotCondition').value = 'new';
     document.getElementById('lotSalesTax').value = '0';
@@ -22,6 +23,8 @@ function openModal(category) {
     document.getElementById('lotStorageLocation').value = '';
     document.getElementById('lotNotes').value = '';
     loadProductsForModal();
+    wireCostQuantitySyncOnce();
+    if (typeof updateCostQuantityUI === 'function') updateCostQuantityUI();
     document.getElementById('componentModal').classList.add('active');
 }
 
@@ -54,6 +57,68 @@ document.getElementById('productSelect').addEventListener('change', function () 
     const newFields = document.getElementById('newProductFields');
     newFields.style.display = this.value === '__new__' ? 'block' : 'none';
 });
+
+function updateCostQuantityUI() {
+    console.log('updateCostQuantityUI');
+    const qty = parseInt(document.getElementById('lotQuantity').value, 10) || 1;
+    const unitInput = document.getElementById('lotUnitCost');
+    const totalInput = document.getElementById('lotTotalCost');
+    const totalGroup = document.getElementById('lotTotalCostGroup');
+    const unitLabel = document.getElementById('lotUnitCostLabel');
+
+    if (qty > 1) {
+        totalGroup.style.display = 'block';
+        unitLabel.textContent = 'Unit Cost ($/item) *';
+        syncTotalFromUnitCost();
+    } else {
+        totalGroup.style.display = 'none';
+        unitLabel.textContent = 'Cost *';
+        const unitVal = parseFloat(unitInput.value);
+        if (!isNaN(unitVal) && unitVal >= 0) totalInput.value = unitVal.toFixed(2);
+    }
+}
+
+function syncUnitCostFromTotal() {
+    const qty = parseInt(document.getElementById('lotQuantity').value, 10) || 1;
+    if (qty <= 0) return;
+    const totalInput = document.getElementById('lotTotalCost');
+    const unitInput = document.getElementById('lotUnitCost');
+    const total = parseFloat(totalInput.value);
+    if (!isNaN(total) && total >= 0) {
+        unitInput.value = (total / qty).toFixed(2);
+    }
+}
+
+function syncTotalFromUnitCost() {
+    const qty = parseInt(document.getElementById('lotQuantity').value, 10) || 1;
+    const unitInput = document.getElementById('lotUnitCost');
+    const totalInput = document.getElementById('lotTotalCost');
+    const unit = parseFloat(unitInput.value);
+    if (!isNaN(unit) && unit >= 0) {
+        totalInput.value = (unit * qty).toFixed(2);
+    }
+}
+
+let costQuantitySyncWired = false;
+
+function wireCostQuantitySyncOnce() {
+    if (costQuantitySyncWired) return;
+    const qtyEl = document.getElementById('lotQuantity');
+    const unitEl = document.getElementById('lotUnitCost');
+    const totalEl = document.getElementById('lotTotalCost');
+    if (!qtyEl || !unitEl || !totalEl) return;
+    costQuantitySyncWired = true;
+    qtyEl.addEventListener('input', function () {
+        updateCostQuantityUI();
+        syncTotalFromUnitCost();
+    });
+    qtyEl.addEventListener('change', function () {
+        updateCostQuantityUI();
+        syncTotalFromUnitCost();
+    });
+    unitEl.addEventListener('input', syncTotalFromUnitCost);
+    totalEl.addEventListener('input', syncUnitCostFromTotal);
+}
 
 async function saveComponent() {
     const productSelect = document.getElementById('productSelect').value;
@@ -161,8 +226,11 @@ async function editComponent(componentId) {
         document.getElementById('productSelect').disabled = true;
         document.getElementById('newProductFields').style.display = 'none';
         document.getElementById('lotVendor').value = component.vendor || '';
-        document.getElementById('lotUnitCost').value = component.unit_cost ?? '';
-        document.getElementById('lotQuantity').value = component.quantity_on_hand ?? 1;
+        const qty = component.quantity_on_hand ?? 1;
+        const unitCost = component.unit_cost ?? 0;
+        document.getElementById('lotUnitCost').value = unitCost !== '' ? unitCost : '';
+        document.getElementById('lotTotalCost').value = (qty > 1 && unitCost !== '') ? (parseFloat(unitCost) * qty).toFixed(2) : (unitCost !== '' ? unitCost : '');
+        document.getElementById('lotQuantity').value = qty;
         document.getElementById('lotCondition').value = component.condition || 'new';
         document.getElementById('lotSalesTax').value = component.sales_tax ?? 0;
         document.getElementById('lotShippingCost').value = component.shipping_cost ?? 0;
@@ -171,6 +239,8 @@ async function editComponent(componentId) {
         document.getElementById('lotSerialNumber').value = component.serial_number || '';
         document.getElementById('lotStorageLocation').value = component.storage_location || '';
         document.getElementById('lotNotes').value = component.notes || '';
+        wireCostQuantitySyncOnce();
+        if (typeof updateCostQuantityUI === 'function') updateCostQuantityUI();
         document.getElementById('componentModal').classList.add('active');
     } catch (err) {
         alert('Error loading component: ' + err.message);

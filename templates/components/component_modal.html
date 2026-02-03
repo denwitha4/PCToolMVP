@@ -48,11 +48,15 @@
                 </div>
             </div>
 
-            <!-- Main required fields -->
-            <div class="form-row">
+            <!-- Main required fields: Cost/Unit Cost, Total (when qty > 1), Quantity -->
+            <div class="form-row cost-quantity-row" id="costQuantityRow">
                 <div class="form-group">
-                    <label>Unit Cost (pre-tax) * ($)</label>
+                    <label id="lotUnitCostLabel">Cost *</label>
                     <input type="number" id="lotUnitCost" step="0.01" placeholder="0.00" required>
+                </div>
+                <div class="form-group" id="lotTotalCostGroup" style="display: none;">
+                    <label>Total ($)</label>
+                    <input type="number" id="lotTotalCost" step="0.01" placeholder="0.00">
                 </div>
                 <div class="form-group">
                     <label>Quantity *</label>
@@ -151,6 +155,10 @@
 
 .form-row .form-group.full-width {
     grid-column: 1 / -1;
+}
+
+.form-row.cost-quantity-row {
+    grid-template-columns: 1fr 1fr 1fr;
 }
 
 .new-product-section {

@@ -57,12 +57,9 @@
                     <th>Category</th>
                     <th>Condition</th>
                     <th>Status</th>
-                    <th>Qty On Hand</th>
-                    <th>Qty Reserved</th>
-                    <th>Qty Available</th>
+                    <th>QTY</th>
                     <th>Unit Cost</th>
-                    <th>Extra Cost</th>
-                    <th>Total Cost</th>
+                    <th>Value</th>
                     <th>Date Added</th>
                     <th>Actions</th>
                 </tr>
@@ -86,27 +83,27 @@
         <form id="bulkEditForm" onsubmit="submitBulkEdit(event)">
             <div class="form-group">
                 <label>Vendor</label>
-                <input type="text" id="bulkVendor" placeholder="Leave blank to keep">
+                <input type="text" id="bulkVendor" placeholder="...">
             </div>
             <div class="form-group">
                 <label>Unit cost</label>
-                <input type="number" id="bulkUnitCost" step="0.01" placeholder="Leave blank to keep">
+                <input type="number" id="bulkUnitCost" step="0.01" placeholder="...">
             </div>
             <div class="form-group">
                 <label>Quantity on hand</label>
-                <input type="number" id="bulkQtyOnHand" min="0" placeholder="Leave blank to keep">
+                <input type="number" id="bulkQtyOnHand" min="0" placeholder="...">
             </div>
             <div class="form-group">
                 <label>Sales tax</label>
-                <input type="number" id="bulkSalesTax" step="0.01" placeholder="Leave blank to keep">
+                <input type="number" id="bulkSalesTax" step="0.01" placeholder="...">
             </div>
             <div class="form-group">
                 <label>Shipping cost</label>
-                <input type="number" id="bulkShippingCost" step="0.01" placeholder="Leave blank to keep">
+                <input type="number" id="bulkShippingCost" step="0.01" placeholder="...">
             </div>
             <div class="form-group">
                 <label>Fees</label>
-                <input type="number" id="bulkFees" step="0.01" placeholder="Leave blank to keep">
+                <input type="number" id="bulkFees" step="0.01" placeholder="...">
             </div>
             <div class="form-group">
                 <label>Category (updates product)</label>
@@ -209,8 +206,6 @@
                 </div>
             </div>
             <!-- Right column: Components table -->
-        </div>
-        
             <div class="bundle-right-column">
                 <div class="line-items-section">
                     <div class="line-items-header">
@@ -240,6 +235,7 @@
                     </div>
                 </div>
             </div>
+        </div>
         <div class="form-actions">
             <button type="button" class="cancel-btn" onclick="closeBundleModal()">Cancel</button>
             <button type="button" class="submit-btn" id="bundleSubmitBtn" onclick="submitBundle()" disabled>Create Bundle</button>
@@ -269,7 +265,7 @@
     function formatDate(iso) {
         if (!iso) return '—';
         const d = new Date(iso);
-        return d.toLocaleDateString();
+        return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
     }
 
     function getFilteredComponents() {
@@ -290,13 +286,21 @@
     function renderTable() {
         const tbody = document.getElementById('inventoryTableBody');
         const filtered = getFilteredComponents();
+        // Available quantity first (in stock), then fully reserved/others
+        filtered.sort((a, b) => {
+            const aAvail = (a.quantity_available ?? 0) > 0 ? 1 : 0;
+            const bAvail = (b.quantity_available ?? 0) > 0 ? 1 : 0;
+            return bAvail - aAvail;
+        });
         if (filtered.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="13"><div class="empty-state"><h3>No inventory components</h3><p>Click "+ Bought Component" to add stock</p></div></td></tr>';
+            tbody.innerHTML = '<tr><td colspan="10"><div class="empty-state"><h3>No inventory components</h3><p>Click "+ Bought Component" to add stock</p></div></td></tr>';
             return;
         }
         tbody.innerHTML = filtered.map(component => {
             const checked = selectedIds.has(component.id) ? 'checked' : '';
-            const extraCost = (component.sales_tax ?? 0) + (component.shipping_cost ?? 0) + (component.fees ?? 0);
+            const unitCostLanded = component.total_landed_cost ?? (component.unit_cost ?? 0) + (component.sales_tax ?? 0) + (component.shipping_cost ?? 0) + (component.fees ?? 0);
+            const qtyAvail = component.quantity_available ?? 0;
+            const lineValue = (typeof qtyAvail === 'number' ? qtyAvail : parseFloat(qtyAvail) || 0) * unitCostLanded;
             const conditionMap = {
                 'new': 'New',
                 'open_box': 'Open Box',
@@ -311,7 +315,13 @@
                 'damaged': 'Damaged',
                 'returned': 'Returned'
             };
-            const status = statusMap[component.inventory_status] || component.inventory_status || 'In Stock';
+            const qtyAvailableNum = component.quantity_available ?? 0;
+            const displayStatus = qtyAvailableNum > 0 ? 'in_stock' : (component.inventory_status || 'in_stock');
+            const status = statusMap[displayStatus] || 'In Stock';
+            const qtyOnHand = component.quantity_on_hand ?? 0;
+            const qtyReserved = component.quantity_reserved ?? 0;
+            const qtyAvailable = component.quantity_available ?? '—';
+            const qtyTitle = `Reserved: ${qtyReserved}, Total: ${qtyOnHand}`;
             
             return `
                 <tr data-component-id="${component.id}">
@@ -319,18 +329,14 @@
                     <td><strong>${component.product_name || '—'}</strong></td>
                     <td><span class="category-badge badge-${(component.category || '').toLowerCase().replace(' ', '-')}">${component.category || '—'}</span></td>
                     <td>${condition}</td>
-                    <td><span class="status-badge status-${component.inventory_status || 'in_stock'}">${status}</span></td>
-                    <td>${component.quantity_on_hand ?? '—'}</td>
-                    <td>${component.quantity_reserved ?? 0}</td>
-                    <td>${component.quantity_available ?? '—'}</td>
-                    <td>$${(component.unit_cost ?? 0).toFixed(2)}</td>
-                    <td>$${extraCost.toFixed(2)}</td>
-                    <td>$${(component.total_landed_cost ?? 0).toFixed(2)}</td>
+                    <td><span class="status-badge status-${displayStatus}">${status}</span></td>
+                    <td class="qty-cell" title="${qtyTitle}">${qtyAvailable}</td>
+                    <td>$${unitCostLanded.toFixed(2)}</td>
+                    <td>$${lineValue.toFixed(2)}</td>
                     <td>${formatDate(component.created_at)}</td>
                     <td>
                         <div class="action-buttons">
                             <button type="button" class="action-btn edit-btn" onclick="editComponent(${component.id})">Edit</button>
-                            <button type="button" class="action-btn" onclick="boughtMore(${component.id})">+ Bought More</button>
                         </div>
                     </td>
                 </tr>
