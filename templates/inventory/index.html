@@ -139,82 +139,52 @@
             <button class="close-btn" onclick="closeBundleModal()">×</button>
         </div>
         
-        <div class="modal-body">
-            <!-- Section A: Bundle Summary -->
-            <div class="bundle-summary-section">
-                <h3>Bundle Details</h3>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Total Bundle Price * ($)</label>
-                        <input type="number" id="bundleTotalPrice" step="0.01" placeholder="0.00" required oninput="recalculateAllocations()">
+        <div class="modal-body bundle-two-column-layout">
+            <!-- Left column: Preset, Bundle Details, Summary -->
+            <div class="bundle-left-column">
+                <!-- Section B: Allocation Preset -->
+                <div class="preset-section">
+                    <label>Allocation Preset</label>
+                    <select id="allocationPreset" onchange="applyPreset()">
+                        <option value="">-- Select Bundle Type --</option>
+                        <option value="full_build">Full Build</option>
+                        <option value="bulk">Bulk</option>
+                        <option value="custom">Custom</option>
+                    </select>
+                </div>
+                <!-- Section A: Bundle Summary -->
+                <div class="bundle-summary-section">
+                    <h3>Bundle Details</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Total Bundle Price * ($)</label>
+                            <input type="number" id="bundleTotalPrice" step="0.01" placeholder="0.00" required oninput="recalculateAllocations()">
+                        </div>
+                        <div class="form-group">
+                            <label>Vendor *</label>
+                            <input type="text" id="bundleVendor" list="vendorList" placeholder="e.g. Facebook Marketplace" required>
+                            <datalist id="vendorList">
+                                <option value="Facebook Marketplace">
+                                <option value="Newegg">
+                                <option value="Amazon">
+                                <option value="eBay">
+                                <option value="Local Purchase">
+                            </datalist>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label>Vendor *</label>
-                        <input type="text" id="bundleVendor" list="vendorList" placeholder="e.g. Facebook Marketplace" required>
-                        <datalist id="vendorList">
-                            <option value="Facebook Marketplace">
-                            <option value="Newegg">
-                            <option value="Amazon">
-                            <option value="eBay">
-                            <option value="Local Purchase">
-                        </datalist>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Purchase Date *</label>
+                            <input type="date" id="bundlePurchaseDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Notes</label>
+                            <input type="text" id="bundleNotes" placeholder="Optional bundle notes">
+                        </div>
                     </div>
                 </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Purchase Date *</label>
-                        <input type="date" id="bundlePurchaseDate" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Notes</label>
-                        <input type="text" id="bundleNotes" placeholder="Optional bundle notes">
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Section B: Allocation Preset -->
-            <div class="preset-section">
-                <label>Allocation Preset</label>
-                <select id="allocationPreset" onchange="applyPreset()">
-                    <option value="">Custom (no preset)</option>
-                    <option value="gaming_pc">Gaming PC Bundle</option>
-                    <option value="office_pc">Office PC Bundle</option>
-                    <option value="gpu_heavy">GPU-Heavy Bundle</option>
-                    <option value="storage_heavy">Storage-Heavy Bundle</option>
-                </select>
-            </div>
-            
-            <!-- Section C: Line Items Table -->
-            <div class="line-items-section">
-                <div class="line-items-header">
-                    <h3>Components</h3>
-                    <button type="button" class="add-button" onclick="addBundleLineItem()">+ Add Component</button>
-                </div>
-                <div class="table-wrapper">
-                    <table id="bundleLineItemsTable" class="bundle-table">
-                        <thead>
-                            <tr>
-                                <th>Category</th>
-                                <th>Product</th>
-                                <th>Qty</th>
-                                <th>Weight (%)</th>
-                                <th>Allocated ($)</th>
-                                <th>Lock</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="bundleLineItemsBody">
-                            <!-- Line items will be rendered here -->
-                        </tbody>
-                    </table>
-                </div>
-                <div id="emptyLineItemsMessage" style="padding: 20px; text-align: center; color: #7f8c8d; display: none;">
-                    No components added yet. Click "+ Add Component" to start.
-                </div>
-            </div>
-            
-            <!-- Section D: Allocation Summary Footer -->
-            <div class="allocation-summary">
+                <!-- Section D: Allocation Summary -->
+                <div class="allocation-summary">
                 <div class="summary-grid">
                     <div class="summary-item">
                         <span class="summary-label">Bundle Total:</span>
@@ -236,9 +206,40 @@
                 <div class="allocation-warning" id="allocationWarning" style="display: none;">
                     ⚠️ These costs are estimated allocations and may not reflect resale value.
                 </div>
+                </div>
             </div>
+            <!-- Right column: Components table -->
         </div>
         
+            <div class="bundle-right-column">
+                <div class="line-items-section">
+                    <div class="line-items-header">
+                        <h3>Components</h3>
+                        <button type="button" class="add-button" onclick="addBundleLineItem()">+ Add Component</button>
+                    </div>
+                    <div class="table-wrapper">
+                        <table id="bundleLineItemsTable" class="bundle-table">
+                            <thead>
+                                <tr>
+                                    <th>Category</th>
+                                    <th>Product</th>
+                                    <th>Qty</th>
+                                    <th>Weight (%)</th>
+                                    <th>Allocated ($)</th>
+                                    <th>Lock</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bundleLineItemsBody">
+                                <!-- Line items will be rendered here -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="emptyLineItemsMessage" style="padding: 20px; text-align: center; color: #7f8c8d; display: none;">
+                        No components added yet. Click "+ Add Component" to start.
+                    </div>
+                </div>
+            </div>
         <div class="form-actions">
             <button type="button" class="cancel-btn" onclick="closeBundleModal()">Cancel</button>
             <button type="button" class="submit-btn" id="bundleSubmitBtn" onclick="submitBundle()" disabled>Create Bundle</button>
