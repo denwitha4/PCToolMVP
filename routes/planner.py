@@ -411,22 +411,6 @@ def add_component_to_build(
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
     
-    # Check if component of same category already exists
-    existing = db.query(BuildComponent).join(Product).filter(
-        BuildComponent.build_id == build_id,
-        BuildComponent.user_id == user_id,
-        Product.category == product.category,
-    ).first()
-    
-    if existing:
-        # Release existing reservation if applicable
-        if existing.lot_id and not existing.is_external:
-            release_inventory_reservation(
-                db, existing.lot_id, existing.quantity, user_id
-            )
-        db.delete(existing)
-        db.commit()
-    
     # Handle inventory reservation if not external
     if component.lot_id and not component.is_external:
         soft_reserve_inventory(

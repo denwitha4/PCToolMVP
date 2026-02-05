@@ -41,7 +41,7 @@ EXCLUDE_TERMS = [
     "broken", "replacement", "connector", "repair", "travel", "alienware", 
     "waterblock", "backplate", "bracket", "mount", "adapter", "cable", 
     "riser", "extension", "parts", "bad", "laptop", "dell", "TB", "Computer", "Gaming",
-    "PC", "Memory", "Thinkpad", "Notebook", "Flash", "AT&T"
+    "PC", "Memory", "Thinkpad", "Notebook", "Flash", "AT&T", "Chromebook", "Heatsink", "sink", "Lenovo"
 ]
 
 def search_items(keyword, extra_exclusions=[], max_results=100):
@@ -50,7 +50,7 @@ def search_items(keyword, extra_exclusions=[], max_results=100):
     if not EBAY_APP_ID or not EBAY_CERT_ID:
         print("❌ Missing credentials in .env file")
         print("Required: EBAY_APP_ID and EBAY_CERT_ID")
-        return
+        return []
     
     token = get_oauth_token()
     

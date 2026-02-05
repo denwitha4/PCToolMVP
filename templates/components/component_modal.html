@@ -48,8 +48,12 @@
                 </div>
             </div>
 
-            <!-- Main required fields: Cost/Unit Cost, Total (when qty > 1), Quantity -->
+            <!-- Main required fields: Quantity, then Unit Cost, then Total (when qty > 1) -->
             <div class="form-row cost-quantity-row" id="costQuantityRow">
+                <div class="form-group form-group-qty">
+                    <label>Quantity</label>
+                    <input type="number" id="lotQuantity" step="1" min="1" value="1" placeholder="1" required>
+                </div>
                 <div class="form-group">
                     <label id="lotUnitCostLabel">Cost *</label>
                     <input type="number" id="lotUnitCost" step="0.01" placeholder="0.00" required>
@@ -57,10 +61,6 @@
                 <div class="form-group" id="lotTotalCostGroup" style="display: none;">
                     <label>Total ($)</label>
                     <input type="number" id="lotTotalCost" step="0.01" placeholder="0.00">
-                </div>
-                <div class="form-group">
-                    <label>Quantity *</label>
-                    <input type="number" id="lotQuantity" step="1" min="1" value="1" placeholder="1" required>
                 </div>
             </div>
 
@@ -158,7 +158,22 @@
 }
 
 .form-row.cost-quantity-row {
-    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-columns: 80px 1fr;
+    align-items: end;
+}
+
+.form-row.cost-quantity-row.has-total {
+    grid-template-columns: 80px 1fr 1fr;
+}
+
+.form-row.cost-quantity-row .form-group-qty {
+    max-width: 80px;
+}
+
+.form-row.cost-quantity-row .form-group-qty input {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
 }
 
 .new-product-section {

@@ -92,6 +92,30 @@
         vertical-align: top;
         overflow: visible;
     }
+    
+    .component-sub-row td:first-child {
+        padding-left: 24px;
+        border-left: 3px solid #e0e0e0;
+        color: #7f8c8d;
+        font-size: 13px;
+    }
+    
+    .add-extra-btn {
+        background: #3498db;
+        color: white;
+        border: none;
+        padding: 6px 14px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 12px;
+        margin-top: 8px;
+        margin-right: 8px;
+        transition: background 0.2s;
+    }
+
+    .add-extra-btn:hover {
+        background: #2d84bf;
+    }
 </style>
 {% endblock %}
 
@@ -107,7 +131,7 @@
         <div class="progress-bar-container">
             <div class="progress-bar" id="progressBar"></div>
         </div>
-        <p class="progress-text" id="progressText">0 of 8 components</p>
+        <p class="progress-text" id="progressText">0 of 8 categories</p>
         <p class="progress-subtext">Complete build specs help your listing stand out</p>
     </div>
 
@@ -205,7 +229,7 @@
 
     // Initialize
     async function init() {
-        const buildId = {{ build_id }};
+        const buildId = Number("{{ build_id }}");
         
         try {
             const [componentsResponse, buildResponse] = await Promise.all([
@@ -232,8 +256,10 @@
             const bcData = await response.json();
             
             buildComponents = {};
+            componentCategories.forEach(cat => { buildComponents[cat.name] = []; });
             bcData.forEach(bc => {
-                buildComponents[bc.category] = {
+                const arr = buildComponents[bc.category];
+                if (arr) arr.push({
                     productId: bc.product_id,
                     lotId: bc.lot_id,
                     buildComponentId: bc.id,
@@ -241,12 +267,11 @@
                     category: bc.category,
                     cost: bc.cost_at_time,
                     msrp: bc.msrp,
-                    // Enhanced planner fields
                     quantity: bc.quantity,
                     isExternal: bc.is_external,
                     isInventoryBacked: bc.is_inventory_backed,
                     profitMargin: bc.profit_margin_percentage
-                };
+                });
             });
         } catch (error) {
             console.error('Error loading build components:', error);
@@ -255,47 +280,76 @@
 
     function renderComponentCards() {
         const tbody = document.getElementById('componentTableBody');
-        tbody.innerHTML = componentCategories.map(category => {
-            const selected = buildComponents[category.name];
-            const isFilled = !!selected;
-            const id = safeId(category.name);
-            
-            if (isFilled) {
-                const marginColor = (selected.profitMargin || 0) >= 20 ? '#27ae60' : (selected.profitMargin || 0) >= 10 ? '#f39c12' : '#e74c3c';
-                const sourceIcon = selected.isInventoryBacked ? '📦' : '🔗';
-                const sourceText = selected.isInventoryBacked ? 'Inventory' : 'External';
-                
-                return `
+        const rows = [];
+        componentCategories.forEach(category => {
+            const list = buildComponents[category.name] || [];
+            const hasAny = list.length >= 1;
+            const first = list[0];
+            const extras = list.slice(1);
+            const baseId = safeId(category.name);
+
+            if (hasAny && first) {
+                const marginColor = (first.profitMargin || 0) >= 20 ? '#27ae60' : (first.profitMargin || 0) >= 10 ? '#f39c12' : '#e74c3c';
+                const sourceIcon = first.isInventoryBacked ? '📦' : '🔗';
+                const sourceText = first.isInventoryBacked ? 'Inventory' : 'External';
+                const id = baseId + '-' + first.buildComponentId;
+                rows.push(`
                     <tr>
                         <td><a href="#" class="component-link">${category.title}</a></td>
                         <td>
                             <div class="selector-wrapper">
-                                <div class="selected-component-cell" onclick="toggleDropdown('${category.name}', event)" style="cursor: pointer;">
-                                    <span class="component-name-hover">${selected.name}</span>
+                                <div class="selected-component-cell" onclick="toggleDropdown('${category.name}', event, '${first.buildComponentId}')" style="cursor: pointer;">
+                                    <span class="component-name-hover">${first.name}</span>
                                     <span class="component-chevron" id="chevron-${id}">›</span>
                                 </div>
-                                <div id="dropdown-${id}" class="table-dropdown-list">
-                                    <!-- Dropdown items will be populated here -->
-                                </div>
+                                <div id="dropdown-${id}" class="table-dropdown-list"></div>
                             </div>
+                            <div id="dropdown-${baseId}-add" class="table-dropdown-list"></div>
                         </td>
-                        <td>$${selected.msrp != null ? selected.msrp.toFixed(2) : 'N/A'}</td>
-                        <td>$${selected.cost.toFixed(2)}</td>
-                        <td style="color: ${marginColor}; font-weight: bold;">${(selected.profitMargin || 0).toFixed(1)}%</td>
+                        <td>$${first.msrp != null ? first.msrp.toFixed(2) : 'N/A'}</td>
+                        <td>$${first.cost.toFixed(2)}</td>
+                        <td style="color: ${marginColor}; font-weight: bold;">${(first.profitMargin || 0).toFixed(1)}%</td>
                         <td>${sourceIcon} ${sourceText}</td>
-                        <td><button class="remove-btn" onclick="removeComponent('${category.name}')">Remove</button></td>
+                        <td>
+                            <button type="button" class="add-extra-btn" onclick="toggleDropdown('${category.name}', event, 'add')">+ Add Extra</button>
+                            <button class="remove-btn" onclick="removeComponent(${first.buildComponentId})">Remove</button>
+                        </td>
                     </tr>
-                `;
+                `);
+                extras.forEach(selected => {
+                    const mColor = (selected.profitMargin || 0) >= 20 ? '#27ae60' : (selected.profitMargin || 0) >= 10 ? '#f39c12' : '#e74c3c';
+                    const sIcon = selected.isInventoryBacked ? '📦' : '🔗';
+                    const sText = selected.isInventoryBacked ? 'Inventory' : 'External';
+                    const rowId = selected.buildComponentId;
+                    const subId = baseId + '-' + rowId;
+                    rows.push(`
+                        <tr class="component-sub-row">
+                            <td>↳</td>
+                            <td>
+                                <div class="selector-wrapper">
+                                    <div class="selected-component-cell" onclick="toggleDropdown('${category.name}', event, '${rowId}')" style="cursor: pointer;">
+                                        <span class="component-name-hover">${selected.name}</span>
+                                        <span class="component-chevron" id="chevron-${subId}">›</span>
+                                    </div>
+                                    <div id="dropdown-${subId}" class="table-dropdown-list"></div>
+                                </div>
+                            </td>
+                            <td>$${selected.msrp != null ? selected.msrp.toFixed(2) : 'N/A'}</td>
+                            <td>$${selected.cost.toFixed(2)}</td>
+                            <td style="color: ${mColor}; font-weight: bold;">${(selected.profitMargin || 0).toFixed(1)}%</td>
+                            <td>${sIcon} ${sText}</td>
+                            <td><button class="remove-btn" onclick="removeComponent(${rowId})">Remove</button></td>
+                        </tr>
+                    `);
+                });
             } else {
-                return `
+                rows.push(`
                     <tr>
                         <td><a href="#" class="component-link">${category.title}</a></td>
                         <td>
                             <div class="selector-wrapper">
-                                <button class="select-btn" onclick="toggleDropdown('${category.name}', event)">+ Choose ${category.title}</button>
-                                <div id="dropdown-${id}" class="table-dropdown-list">
-                                    <!-- Dropdown items will be populated here -->
-                                </div>
+                                <button class="select-btn" onclick="toggleDropdown('${category.name}', event, 'add')">+ Choose ${category.title}</button>
+                                <div id="dropdown-${baseId}-add" class="table-dropdown-list"></div>
                             </div>
                         </td>
                         <td>—</td>
@@ -304,9 +358,10 @@
                         <td>—</td>
                         <td>—</td>
                     </tr>
-                `;
+                `);
             }
-        }).join('');
+        });
+        tbody.innerHTML = rows.join('');
     }
 
     function showDropdown(category, input) {
@@ -314,9 +369,10 @@
         filterComponents(category, input.value);
     }
 
-    function toggleDropdown(category, event) {
+    function toggleDropdown(category, event, suffix) {
         if (event) event.preventDefault();
-        const id = safeId(category);
+        suffix = suffix || 'add';
+        const id = safeId(category) + '-' + suffix;
         const dropdown = document.getElementById(`dropdown-${id}`);
         const chevron = document.getElementById(`chevron-${id}`);
         if (!dropdown) return;
@@ -437,17 +493,16 @@
         }
     }
 
-    async function removeComponent(category) {
-        const bc = buildComponents[category];
-        if (!bc || !currentBuild) return;
+    async function removeComponent(buildComponentId) {
+        if (!currentBuild) return;
         
         try {
-            const response = await fetch(`/api/planner/builds/${currentBuild.id}/components/${bc.buildComponentId}`, {
+            const response = await fetch(`/api/planner/builds/${currentBuild.id}/components/${buildComponentId}`, {
                 method: 'DELETE'
             });
             
             if (response.ok) {
-                await init(); // Reload full build data with metrics
+                await init();
             }
         } catch (error) {
             console.error('Error removing component:', error);
@@ -455,12 +510,12 @@
     }
 
     function updateProgress() {
-        const filled = Object.keys(buildComponents).length;
         const total = componentCategories.length;
-        const percentage = (filled / total) * 100;
+        const filled = componentCategories.filter(cat => (buildComponents[cat.name] || []).length >= 1).length;
+        const percentage = total ? (filled / total) * 100 : 0;
         
         document.getElementById('progressBar').style.width = `${percentage}%`;
-        document.getElementById('progressText').textContent = `${filled} of ${total} components`;
+        document.getElementById('progressText').textContent = `${filled} of ${total} categories`;
     }
 
     function updateSummary() {

@@ -66,13 +66,16 @@ function updateCostQuantityUI() {
     const totalGroup = document.getElementById('lotTotalCostGroup');
     const unitLabel = document.getElementById('lotUnitCostLabel');
 
+    const row = document.getElementById('costQuantityRow');
     if (qty > 1) {
         totalGroup.style.display = 'block';
-        unitLabel.textContent = 'Unit Cost ($/item) *';
+        if (row) row.classList.add('has-total');
+        unitLabel.textContent = 'Unit Cost';
         syncTotalFromUnitCost();
     } else {
         totalGroup.style.display = 'none';
-        unitLabel.textContent = 'Cost *';
+        if (row) row.classList.remove('has-total');
+        unitLabel.textContent = 'Cost';
         const unitVal = parseFloat(unitInput.value);
         if (!isNaN(unitVal) && unitVal >= 0) totalInput.value = unitVal.toFixed(2);
     }
