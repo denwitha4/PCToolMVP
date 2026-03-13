@@ -46,3 +46,16 @@ async def builder_page(request: Request):
 async def builder_edit_page(request: Request, build_id: int, db: Session = Depends(get_db)):
     """Edit specific build page"""
     return templates.TemplateResponse("builder/edit.html", {"request": request, "build_id": build_id, "active": "builder"})
+
+
+# Reference pages (local viewing only)
+@router.get("/reference/daytona", response_class=HTMLResponse)
+async def reference_daytona(request: Request):
+    """Reference: Daytona page"""
+    return templates.TemplateResponse("reference/daytona.html", {"request": request})
+
+
+@router.get("/reference/clickpilot_app", response_class=HTMLResponse)
+async def reference_clickpilot_app(request: Request):
+    """Reference: ClickPilot app page"""
+    return templates.TemplateResponse("reference/clickpilot_app.html", {"request": request})
